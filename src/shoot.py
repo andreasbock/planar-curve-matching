@@ -1,6 +1,7 @@
 from firedrake import *
-import utils
 import numpy as np
+
+import src.utils as utils
 
 
 class AxisAlignedDirichletBC(DirichletBC):
@@ -9,10 +10,9 @@ class AxisAlignedDirichletBC(DirichletBC):
 
 class GeodesicShooter:
 
-    def __init__(self, _mesh, log_path):
-        selfsmesh = _mesh
-        self.log_path = log_path
-        utils.create_dir_from_path_if_not_exists(self.log_path)
+    def __init__(self, _mesh: Mesh, logger: utils.Logger):
+        self.mesh = _mesh
+        self._logger = logger
 
         # set up mesh
         self._scale = 5  # to fit unit circle to gmsh field
@@ -72,7 +72,7 @@ class GeodesicShooter:
             self.phi += self.u * dt
             self._update_mesh()
 
-        File(self.log_path / "shape.pvd").write(self.shape_function)
+        return self.phi, self.shape_function
 
     def _update_mesh(self):
         coords = project(self.phi, self.VCG)
@@ -88,6 +88,9 @@ class GeodesicShooter:
             raise Exception("Template points moved outside domain: {}"
                 .format(points))
 
+    def dump_parameters(self):
+        raise NotImplemented
+
     def extract_points(self, thetas):
         """ Get the points on the discretised shape (i.e. the "circle" for
         now) corresponding to the parameterisation `thetas`, here
@@ -95,3 +98,5 @@ class GeodesicShooter:
         """
         return self._scale * np.array([(np.cos(t), np.sin(t)) for t in thetas])
 
+    def momentum_function(self):
+        return Function(self.VDGT)

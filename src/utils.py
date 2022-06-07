@@ -1,10 +1,11 @@
-import logging
 from firedrake import *
+import logging as _logging
 from firedrake.petsc import PETSc
 from datetime import datetime
 import pickle
 import os
-
+from pathlib import Path
+import sys
 
 def date_string():
     return datetime.now().strftime("%Y-%m-%d|%H.%M.%S")
@@ -16,25 +17,43 @@ def create_dir_from_path_if_not_exists(path):
         os.makedirs(path)
 
 
-def basic_logger(logger_path):
-    log_dir, _ = os.path.split(logger_path)
+class Logger:
 
-    if not os.path.exists(log_dir):
-        os.makedirs(log_dir)
+    def __init__(self, logger_path):
+        self.logger_path = logger_path
+        self.logger_dir = self.logger_path.parent
+        self._logger = _basic_logger(logger_path)
 
-    logger = logging.getLogger(logger_path)
+    def info(self, msg):
+        self._logger.info(msg)
+
+    def debug(self, msg):
+        self._logger.debug(msg)
+
+    def critical(self, msg):
+        self._logger.critical(msg)
+
+    def log(self, msg, level):
+        self._logger.log(msg, level)
+
+
+def _basic_logger(logger_path: Path) -> _logging.Logger:
+    if not logger_path.parent.exists():
+        logger_path.parent.mkdir()
+
+    logger = _logging.getLogger(str(logger_path))
 
     logger.setLevel(logging.INFO)
     format_string = "%(asctime)s [%(levelname)s]: %(message)s"
-    log_format = logging.Formatter(format_string, "%Y-%m-%d %H:%M:%S")
+    log_format = _logging.Formatter(format_string, "%Y-%m-%d %H:%M:%S")
 
     # Creating and adding the console handler
-    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler = _logging.StreamHandler(sys.stdout)
     console_handler.setFormatter(log_format)
     logger.addHandler(console_handler)
 
     # Creating and adding the file handler
-    file_handler = logging.FileHandler(logger_path)
+    file_handler = _logging.FileHandler(str(logger_path))
     file_handler.setFormatter(log_format)
     logger.addHandler(file_handler)
 
