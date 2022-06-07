@@ -21,7 +21,6 @@ class GeodesicShooter:
         solver_parameters = {'mat_type': 'aij', 'ksp_type': 'preonly', 'pc_factor_mat_solver_type': 'mumps', 'pc_type': 'lu'}
 
         # Function spaces
-        #self.XW = VectorFunctionSpace(self.mesh, "WXRobH3NC", degree=7, dim=2)
         self.XW = VectorFunctionSpace(self.mesh, "WXH3NC", degree=4, dim=2)
         self.DG = FunctionSpace(self.mesh, "DG", 0)  # for plotting inside the curve
         self.VDGT = VectorFunctionSpace(self.mesh, "DGT", degree=1, dim=2)  # for momentum
@@ -56,17 +55,17 @@ class GeodesicShooter:
         velocity_problem_u = LinearVariationalProblem(a, rhs, self.u, bcs=bcs, constant_jacobian=False)
         self.velocity_solver_u = LinearVariationalSolver(velocity_problem_u, solver_parameters=solver_parameters)
 
-    def shoot(self, p0, timesteps):
+    def shoot(self, p0, time_steps):
         """ Solves the forward problem given momentum `p`, tracking the
             locations of the landmarks given by the parameterisation `ts`.
             `dump_curves` is only for IVP examples.
         """
-        dt = Constant(1/timesteps)
+        dt = Constant(1 / time_steps)
         shape_normal = utils.shape_normal(self.mesh, self.VDGT)
         self.p0.assign(utils.trace_interpolate(self.VDGT, p0 * shape_normal))
 
-        for t in range(timesteps):
-            utils.pprint("Shooting... t = {}".format(t + 1))
+        for t in range(time_steps):
+            utils.pprint(f"Shooting... t = {t}")
             self.facetarea_solver.solve()
             self.velocity_solver_u.solve()
             self.phi += self.u * dt

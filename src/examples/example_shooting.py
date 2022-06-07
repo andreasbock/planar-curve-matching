@@ -1,6 +1,6 @@
 from pathlib import Path
 from firedrake import *
-from src.shoot import GeodesicShooter
+from src.shoot_pullback import GeodesicShooter
 import src.utils as utils
 
 timesteps = 5
