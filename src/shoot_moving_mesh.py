@@ -97,5 +97,3 @@ class GeodesicShooter:
         """
         return self._scale * np.array([(np.cos(t), np.sin(t)) for t in thetas])
 
-    def momentum_function(self):
-        return Function(self.VDGT)
