@@ -1,11 +1,11 @@
 from firedrake import *
 import logging as _logging
-from firedrake.petsc import PETSc
 from datetime import datetime
 import pickle
 import os
 from pathlib import Path
 import sys
+
 
 def date_string():
     return datetime.now().strftime("%Y-%m-%d|%H.%M.%S")
@@ -60,33 +60,8 @@ def _basic_logger(logger_path: Path) -> _logging.Logger:
     return logger
 
 
-def delta(u):
-    return div(grad(u))
-
-
-def bihelmholtz(v, dv, alp0=1, alp1=1, alp2=1):
-    return (alp0*inner(v, dv)
-          + alp1*inner(grad(v), grad(dv))
-          + alp2*inner(delta(v), delta(dv))) * dx
-
-
-def trihelmholtz(v, dv, alpha):
-    alp0 = Constant(alpha ** 0)
-    alp1 = Constant(alpha ** 2)
-    alp2 = Constant(alpha ** 4)
-    alp3 = Constant(alpha ** 6)
-
-    vx, vy = v
-    dvx, dvy = dv
-    return (alp0*inner(v, dv)
-          + alp1*inner(grad(vx), grad(dvx))
-          + alp1*inner(grad(vy), grad(dvy))
-
-          + alp2*inner(delta(vx), delta(dvx))
-          + alp2*inner(delta(vy), delta(dvy))
-
-          + alp3*inner(grad(delta(vx)), grad(delta(dvx)))
-          + alp3*inner(grad(delta(vy)), grad(delta(dvy)))) * dx
+def uniform_parameterisation(n):
+    return np.linspace(0, 2 * np.pi, n + 1)[:-1]
 
 
 def pdump(f, name):
@@ -120,10 +95,6 @@ def shape_normal(mesh, VDGT):
     solve(dot(N,dN)('-')*dS + dot(N,dN)*ds == w*dot(n,dN)('-')*dS(mesh_tag), sn)
     x, y = SpatialCoordinate(mesh)
     return as_vector((sign(x)*abs(sn[0]), sign(y)*abs(sn[1])))
-
-
-def pprint(s):
-    PETSc.Sys.Print(s)
 
 
 def trace_interpolate(V, f):
