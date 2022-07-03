@@ -2,11 +2,12 @@ import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
+import firedrake
 from firedrake import *
 
 import src.utils as utils
 from src.meshes.geometry import *
-from meshes.curves import Curve, CURVES
+from src.curves import Curve, CURVES
 
 
 _GMSH_BINARY = "gmsh"
@@ -70,7 +71,7 @@ def geo_to_msh(geometry_file: Path) -> Path:
     return msh_file
 
 
-def msh_to_pvd(msh_file: Path, inside_tag: int = None) -> Path:
+def msh_to_pvd(msh_file: Path, inside_tag: int = None) -> None:
     mesh = Mesh(str(msh_file))
     function_space = FunctionSpace(mesh, "CG", 1)
     if inside_tag:
@@ -81,22 +82,21 @@ def msh_to_pvd(msh_file: Path, inside_tag: int = None) -> Path:
     pvd_file = msh_file.parent / f"{msh_file.stem}.pvd"
     File(pvd_file).write(indicator)
     print(f"Wrote {pvd_file}.")
-    return pvd_file
 
 
 def generate_mesh(
-        params: MeshGenerationParameters,
-        curve: Curve,
-        base_path: Path,
-) -> Path:
+    params: MeshGenerationParameters,
+    curve: Curve,
+    base_path: Path,
+) -> firedrake.Mesh:
     path = base_path / f"h={params.mesh_size}"
     geo_file = path / f"{curve.name}.geo"
 
     write_geo_file(params, curve, geo_file)
     msh_file = geo_to_msh(geo_file)
-    pvd_file = msh_to_pvd(msh_file, params.curve_tag)
+    msh_to_pvd(msh_file, params.curve_tag)
 
-    return pvd_file
+    return Mesh(str(msh_file))
 
 
 if __name__ == "__main__":
