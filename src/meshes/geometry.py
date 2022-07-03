@@ -3,6 +3,8 @@ import numpy as np
 
 from pathlib import Path
 
+__all__ = ["Curve", "MeshGenerationParameters", "write_geo_file"]
+
 
 _OFFSET = 5
 _RAW_GEOMETRY = """
@@ -52,24 +54,30 @@ Physical Surface(18) = {{2}};
 
 @dataclass
 class Curve:
+    name: str
     points: np.array
+
+
+@dataclass
+class MeshGenerationParameters:
+    min_xy: int = -10
+    max_xy: int = 10
+    mesh_size: float = .25
     curve_tag: int = 10
     inner_tag: int = 6
     outer_tag: int = 7
 
 
 def write_geo_file(
-    min_xy: int,
-    max_xy: int,
-    mesh_size: float,
+    params: MeshGenerationParameters,
     curve: Curve,
-    geo_path: Path,
+    path_to_geo: Path,
 ):
     n = len(curve.points)
     points = ""
     for i, point in enumerate(curve.points):
         x, y = point
-        points += f"Point({i + _OFFSET}) = {{{x}, {y}, 0, {mesh_size}}};\n"
+        points += f"Point({i + _OFFSET}) = {{{x}, {y}, 0, h}};\n"
 
     lines = ""
     for i in range(n):
@@ -79,17 +87,16 @@ def write_geo_file(
     loop_array = "{" + ",".join([str(i + _OFFSET) for i in range(n)]) + "}"
 
     txt = _RAW_GEOMETRY.format(
-        min_xy=min_xy,
-        max_xy=max_xy,
-        mesh_size=mesh_size,
+        min_xy=params.min_xy,
+        max_xy=params.max_xy,
+        mesh_size=params.mesh_size,
+        CURVE_TAG=params.curve_tag,
+        INNER_TAG=params.inner_tag,
+        OUTER_TAG=params.outer_tag,
         POINTS=points,
         LINES=lines,
         LOOP_ARRAY=loop_array,
-        CURVE_TAG=curve.curve_tag,
-        INNER_TAG=curve.inner_tag,
-        OUTER_TAG=curve.outer_tag,
     )
 
-    f = open(geo_path, "w")
-    f.write(txt)
-    f.close()
+    path_to_geo.parent.mkdir(exist_ok=True, parents=True)
+    path_to_geo.write_text(txt)

@@ -1,3 +1,4 @@
+import firedrake
 from firedrake import *
 import logging as _logging
 from datetime import datetime
@@ -79,30 +80,29 @@ def pload(name):
     return f
 
 
-def shape_function(DG, mesh_tag):
-    v, dv = TrialFunction(DG), TestFunction(DG)
-    shape = Function(DG, name="shape_function")
-    solve(v*dv*dx == dv*dx(mesh_tag), shape)
+def shape_function(function_space: FunctionSpace, mesh_tag: int):
+    v, dv = TrialFunction(function_space), TestFunction(function_space)
+    shape = Function(function_space, name="shape_function")
+    solve(v*dv*dx == dv('+')*dS(mesh_tag), shape)
     return shape
 
 
-def shape_normal(mesh, VDGT):
+def shape_normal(mesh: firedrake.Mesh, vector_function_space: firedrake.VectorFunctionSpace):
     mesh_tag = 10
     n = FacetNormal(mesh)
-    N, dN = TrialFunction(VDGT), TestFunction(VDGT)
-    sn = Function(VDGT, name="shape_normal")
-    w = Constant(10)
-    solve(dot(N,dN)('-')*dS + dot(N,dN)*ds == w*dot(n,dN)('-')*dS(mesh_tag), sn)
-    x, y = SpatialCoordinate(mesh)
-    return as_vector((sign(x)*abs(sn[0]), sign(y)*abs(sn[1])))
+    N, dN = TrialFunction(vector_function_space), TestFunction(vector_function_space)
+    sn = Function(vector_function_space, name="shape_normal")
+    solve(dot(N, dN)('-')*dS + dot(N, dN)*ds == dot(n, dN)('-')*dS(mesh_tag), sn)
+    return sn
 
 
-def trace_interpolate(V, f):
-    u, v = TrialFunction(V), TestFunction(V)
-    w = Function(V)
+def trace_interpolate(function_space: FunctionSpace, f: Function = None, mesh_tag: int = None):
+    if f is None:
+        f = as_vector((1, 1))
+    u, v = TrialFunction(function_space), TestFunction(function_space)
+    w = Function(function_space)
     a = inner(u, v)('+')*dS + inner(u, v)*ds
-    L = dot(f, v)('+')*dS + dot(f, v)*ds
+    L = inner(f, v)('+')*dS(mesh_tag) + inner(f, v)*ds
     solve(a == L, w)
     return w
-
 

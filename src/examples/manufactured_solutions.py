@@ -1,5 +1,6 @@
 from pathlib import Path
-from typing import Any, List, Tuple
+from typing import List
+import numpy as np
 
 import firedrake
 
@@ -7,17 +8,26 @@ from src.enkf import *
 from src.shoot_pullback import Diffeomorphism
 import src.utils as utils
 
-__all__ = ["MANUFACTURED_SOLUTIONS_MOMENTUM", "MANUFACTURED_SOLUTIONS_THETAS", "manufacture_solution"]
+
+__all__ = [
+    "MANUFACTURED_SOLUTIONS_MOMENTUM",
+    "MANUFACTURED_SOLUTIONS_PARAMS",
+    "MANUFACTURED_SOLUTIONS_PATH",
+    "manufacture_solution",
+    "ManufacturedSolution",
+]
 
 
+@dataclass(frozen=True)
 class ManufacturedMomentum:
     name: str
-    signal: firedrake.Function
+    signal: function
 
 
-ManufacturedParameterisation = List[np.array]
+MANUFACTURED_SOLUTIONS_PATH = Path("MANUFACTURED_SOLUTIONS")
+ManufacturedParameterisation = np.array
 _NUM_LANDMARKS = [10, 20, 50]
-MANUFACTURED_SOLUTIONS_THETAS: List[ManufacturedParameterisation] = [
+MANUFACTURED_SOLUTIONS_PARAMS: List[ManufacturedParameterisation] = [
     utils.uniform_parameterisation(n) for n in _NUM_LANDMARKS
 ]
 MANUFACTURED_SOLUTIONS_MOMENTUM = [
@@ -30,59 +40,51 @@ MANUFACTURED_SOLUTIONS_MOMENTUM = [
 @dataclass(frozen=True)
 class ManufacturedSolution:
     diffeomorphism: Diffeomorphism  # this is the diffeomorphism
-    landmarks: np.array  # the points on the curve
-    momentum_truth: ManufacturedMomentum
-    thetas_truth: ManufacturedParameterisation
+    target: np.array  # the points on the curve
+    momentum: ManufacturedMomentum
+    parameterisation: ManufacturedParameterisation
 
-    def dump(self, base_path: Path, shape_function: firedrake.Function):
-        path = base_path / f"MOMENTUM={self.momentum_truth.name}_LANDMARKS={len(self.thetas_truth)}"
+    def dump(self, base_path: Path, shape_function: firedrake.Function) -> None:
+        path = base_path / f"MANUFACTURED_SOLUTION_MOMENTUM={self.momentum.name}_LANDMARKS={len(self.parameterisation)}"
         File(path / "target.pvd").write(shape_function)
-
         utils.pdump(self.diffeomorphism, path / "diffeomorphism")
-        utils.pdump(self.landmarks, path / "landmarks")
-        utils.pdump(self.momentum_truth, path / "momentum_truth")
-        utils.pdump(self.thetas_truth, path / "thetas_truth")
+        utils.pdump(self.target, path / "landmarks")
+        utils.pdump(self.momentum, path / "momentum")
+        utils.pdump(self.parameterisation, path / "parameterisation")
+
+    @staticmethod
+    def load(path: Path) -> "ManufacturedSolution":
+        return ManufacturedSolution(
+            diffeomorphism=utils.pload(path / "diffeomorphism"),
+            landmarks=utils.pload(path / "landmarks"),
+            momentum_truth=utils.pload(path / "momentum_truth"),
+            thetas_truth=utils.pload(path / "thetas_truth"),
+        )
 
 
 def manufacture_solution(
-        enkf: EnsembleKalmanFilter,
-        momentum: ManufacturedMomentum,
-        thetas: np.array,
+    forward_operator: GeodesicShooter,
+    momentum: ManufacturedMomentum,
+    param: ManufacturedParameterisation,
 ) -> ManufacturedSolution:
-    momentum_name, momentum_signal = momentum
-
-    # build true momentum from the average of the ensemble
-    momentum_truth = enkf.forward_operator.momentum_function()
-    enkf.ensemble.allreduce(momentum_signal, momentum_truth)
-    momentum_truth.assign(momentum_truth / enkf.ensemble_size)
-
-    # build true parameterisation from the average
-    thetas_truth = thetas
-    # TODO: build average!
-
-    # shoot to get manufactured target, q1
-    diffeomorphism = enkf.forward_operator.shoot(momentum_truth)
-    landmarks = enkf.forward_operator.evaluate_parameterisation(diffeomorphism, thetas_truth)
+    diffeomorphism = forward_operator.shoot(momentum.signal)
+    landmarks = forward_operator.evaluate_parameterisation(diffeomorphism, param)
 
     return ManufacturedSolution(
         diffeomorphism,
         landmarks,
-        momentum_truth,
-        thetas_truth,
+        momentum,
+        param,
     )
 
 
-if __name__=="__main__":
-    # set up logger, ensemble, shooter and filter
-    base_path = Path("MANUFACTURED_SOLUTIONS")
-    logger_path = base_path / "manufactured_solutions.log"
-    logger = utils.Logger(logger_path)
-
-    mesh = Mesh("meshes/mesh0.msh")
+if __name__ == "__main__":
+    logger = utils.Logger(MANUFACTURED_SOLUTIONS_PATH / "manufactured_solutions.log")
+    mesh = Mesh("../meshes/mesh0.msh")
     forward_operator = GeodesicShooter(mesh, logger)
-    enkf = EnsembleKalmanFilter(Ensemble(COMM_WORLD, M=1), forward_operator, InverseProblemParameters(), logger)
 
     for momentum in MANUFACTURED_SOLUTIONS_MOMENTUM:
-        for thetas in MANUFACTURED_SOLUTIONS_THETAS:
-            manufactured_solution = manufacture_solution(enkf, momentum, thetas)
-            manufactured_solution.dump(base_path, enkf.forward_operator.shape_function)
+        for thetas in MANUFACTURED_SOLUTIONS_PARAMS:
+            logger.info(f"Manufacturing solution: '{momentum.name}' with {thetas} landmarks.")
+            manufactured_solution = manufacture_solution(forward_operator, momentum, thetas)
+            manufactured_solution.dump(MANUFACTURED_SOLUTIONS_PATH, forward_operator.shape_function)

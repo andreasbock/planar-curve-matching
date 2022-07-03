@@ -21,8 +21,8 @@ class ShootingParameters:
         }
     )
     momentum_degree: int = 1
-    alpha: int = 0.5
-    time_steps = 10
+    alpha: float = 0.5
+    time_steps: int = 10
 
 
 class GeodesicShooter:
@@ -39,61 +39,51 @@ class GeodesicShooter:
         self._inside_tag = 16
 
         # Function spaces
-        self._momentum_degree = self.parameters.momentum_degree
         self.XW = VectorFunctionSpace(self.mesh, "WXH3NC", degree=4, dim=2)
         self.DG = FunctionSpace(self.mesh, "DG", 0)  # for plotting inside the curve
-        self.VDGT = VectorFunctionSpace(self.mesh, "DGT", degree=self._momentum_degree, dim=2)  # for momentum
+        self.VDGT = VectorFunctionSpace(self.mesh, "DGT", degree=self.parameters.momentum_degree, dim=2)  # for momentum
         self.VCG = VectorFunctionSpace(self.mesh, "CG", degree=1, dim=2)  # for coordinate fields
-        self.DGT = FunctionSpace(self.mesh, "DGT", self._momentum_degree)  # for momentum signal
+        self.DGT = FunctionSpace(self.mesh, "DGT", self.parameters.momentum_degree)  # for momentum signal
         self.DGT0 = FunctionSpace(self.mesh, "DGT", 0)  # for trace sizes
 
         # shape function for plotting
         self.shape_function = utils.shape_function(self.DG, self._inside_tag)
 
         # set up the Functions we need
-        self.orig_coords = project(SpatialCoordinate(self.mesh), self.VCG)
         self.phi = project(SpatialCoordinate(self.mesh), self.XW)
 
         # set up FacetArea recomputation problem
-        self.h = Function(self.DGT0)
-        h_trial, h_test = TrialFunction(self.DGT0), TestFunction(self.DGT0)
-        h_lhs = inner(h_trial, h_test)('+')*dS + inner(h_trial, h_test) * ds
-        h_rhs = inner(FacetArea(self.mesh), h_test)('+') * dS + inner(FacetArea(self.mesh), h_test) * ds
-        facetarea_problem = LinearVariationalProblem(h_lhs, h_rhs, self.h, constant_jacobian=False)
-        self.facetarea_solver = LinearVariationalSolver(facetarea_problem, solver_parameters=self._solver_parameters)
-        self.facetarea_solver.solve()  # warm up
+        self.h = self._compute_facet_area()
 
         # set up velocity problem
         self.u = Function(self.XW)
-        self.p0 = self.momentum_function()
+        self.p = self.momentum_function()
         v, dv = TrialFunction(self.XW), TestFunction(self.XW)
         a = velocity_lhs(v, dv, self.phi, self.parameters.alpha)
         # compute number of edges that form the initial curve q_{0h}
-        n = assemble((1./self.h('+'))*dS(self._shape_tag))  # reference interval has measure 1
-        rhs = (self.h*Constant(2*pi/n)*inner(det(grad(self.phi)) * self.p0, dv))('+')*dS(self._shape_tag)
+        h_inv = inv(self.h)
+        n = assemble(h_inv('+')*dS(self._shape_tag))  # reference interval has measure 1
+        shape_normal = utils.shape_normal(self.mesh, self.VDGT)
+        rhs = (Constant(2*pi/n) * h_inv * inner(dot(transpose(inv(grad(self.phi))), self.p * shape_normal), dv))('+') * dS(self._shape_tag)
         bcs = AxisAlignedDirichletBC(self.XW, Function(self.XW), "on_boundary")
         velocity_problem_u = LinearVariationalProblem(a, rhs, self.u, bcs=bcs, constant_jacobian=False)
         self.velocity_solver_u = LinearVariationalSolver(velocity_problem_u, solver_parameters=self._solver_parameters)
 
-    def shoot(self, p0) -> Diffeomorphism:
+    def shoot(self, p: function) -> Diffeomorphism:
         dt = Constant(1 / self.parameters.time_steps)
-        shape_normal = utils.shape_normal(self.mesh, self.VDGT)
-        self.p0.assign(utils.trace_interpolate(self.VDGT, p0 * shape_normal))
+        x, y = SpatialCoordinate(self.mesh)
+        self.p = p(x, y)
 
         for t in range(self.parameters.time_steps):
-            utils.pprint(f"Shooting... t = {t}")
+            self._logger.info(f"Shooting... t = {t}")
             self.velocity_solver_u.solve()
             self.phi += self.u * dt
 
         # move the mesh for visualisation
         self._update_mesh()
-        return self.phi #, self.shape_function
+        return self.phi
 
     def evaluate_parameterisation(self, thetas):
-        """ Get the points on the discretised shape (i.e. the "circle" for
-        now) corresponding to the parameterisation `thetas`, here
-        (cos(t), sin(t)).
-        """
         return self._scale * np.array([(np.cos(t), np.sin(t)) for t in thetas])
 
     def momentum_function(self):
@@ -101,6 +91,16 @@ class GeodesicShooter:
 
     def dump_parameters(self):
         self._logger.info(f"{self._solver_parameters}")
+
+    def _compute_facet_area(self):
+        h = Function(self.DGT0)
+        h_trial, h_test = TrialFunction(self.DGT0), TestFunction(self.DGT0)
+        h_lhs = inner(h_trial, h_test)('+') * dS + inner(h_trial, h_test) * ds
+        h_rhs = inner(FacetArea(self.mesh), h_test)('+') * dS + inner(FacetArea(self.mesh), h_test) * ds
+        facetarea_problem = LinearVariationalProblem(h_lhs, h_rhs, h, constant_jacobian=False)
+        facetarea_solver = LinearVariationalSolver(facetarea_problem, solver_parameters=self._solver_parameters)
+        facetarea_solver.solve()  # warm up
+        return h
 
     def _update_mesh(self):
         self.mesh.coordinates.assign(project(self.phi, self.VCG))
