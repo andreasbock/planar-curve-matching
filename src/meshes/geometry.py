@@ -11,6 +11,7 @@ _RAW_GEOMETRY = """
 inside_tag = {INNER_TAG};
 outside_tag = {OUTER_TAG};
 curve_tag = {CURVE_TAG};
+n = {NUMBER_OF_POINTS};
 
 h = {mesh_size};
 min_xy = {min_xy};
@@ -46,7 +47,7 @@ Plane Surface(1) = {{1, 2}};  // outer + inner
 Plane Surface(2) = {{2}};  // inner
 
 // Tag the loop, inside and outside
-Physical Line(curve_tag) = {{5, 6 ,7}};  // loop
+Physical Line(curve_tag) = {LOOP_ARRAY};  // loop
 Physical Surface(17) = {{1}};  // inner loop
 Physical Surface(18) = {{2}};
 """
@@ -82,7 +83,7 @@ def write_geo_file(
     lines = ""
     for i in range(n):
         j = i + _OFFSET
-        lines += f"Line({j}) = {{ {j}, {(i+1) % (_OFFSET - 2) + _OFFSET} }};\n"
+        lines += f"Line({j}) = {{ {j}, {(i + 1) % n + _OFFSET} }};\n"
 
     loop_array = "{" + ",".join([str(i + _OFFSET) for i in range(n)]) + "}"
 
@@ -96,6 +97,7 @@ def write_geo_file(
         POINTS=points,
         LINES=lines,
         LOOP_ARRAY=loop_array,
+        NUMBER_OF_POINTS=n,
     )
 
     path_to_geo.parent.mkdir(exist_ok=True, parents=True)
