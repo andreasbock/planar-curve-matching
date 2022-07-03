@@ -9,7 +9,7 @@ class Curve:
     name: str
     points: np.array
 
-    def at(self, angle: float) -> List[float]:
+    def at(self, angle: List[float]) -> List[float]:
         pass
 
     def __sub__(self, other) -> List[float]:
