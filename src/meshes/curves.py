@@ -1,5 +1,13 @@
+from dataclasses import dataclass
 from typing import List
-from src.meshes.geometry import Curve
+
+import numpy as np
+
+
+@dataclass
+class Curve:
+    name: str
+    points: np.array
 
 
 CURVES: List[Curve] = [

@@ -1,15 +1,62 @@
-from firedrake import *
-from pathlib import Path
 import subprocess
+from dataclasses import dataclass
+from pathlib import Path
+
+from firedrake import *
 
 import src.utils as utils
 from src.meshes.geometry import *
-from meshes.curves import CURVES
+from meshes.curves import Curve, CURVES
 
 
 _GMSH_BINARY = "gmsh"
 _SHELL = '/bin/zsh'
 _MESH_RESOLUTIONS = [1/(2*h) for h in range(1, 3)]
+
+
+@dataclass
+class MeshGenerationParameters:
+    mesh_size: float
+    min_xy: int = -10
+    max_xy: int = 10
+    curve_tag: int = 10
+    inner_tag: int = 6
+    outer_tag: int = 7
+
+
+def write_geo_file(
+    params: MeshGenerationParameters,
+    curve: Curve,
+    path_to_geo: Path,
+):
+    n = len(curve.points)
+    points = ""
+    for i, point in enumerate(curve.points):
+        x, y = point
+        points += f"Point({i + _OFFSET}) = {{{x}, {y}, 0, h}};\n"
+
+    lines = ""
+    for i in range(n):
+        j = i + _OFFSET
+        lines += f"Line({j}) = {{ {j}, {(i + 1) % n + _OFFSET} }};\n"
+
+    loop_array = "{" + ",".join([str(i + _OFFSET) for i in range(n)]) + "}"
+
+    txt = _RAW_GEOMETRY.format(
+        min_xy=params.min_xy,
+        max_xy=params.max_xy,
+        mesh_size=params.mesh_size,
+        CURVE_TAG=params.curve_tag,
+        INNER_TAG=params.inner_tag,
+        OUTER_TAG=params.outer_tag,
+        POINTS=points,
+        LINES=lines,
+        LOOP_ARRAY=loop_array,
+        NUMBER_OF_POINTS=n,
+    )
+
+    path_to_geo.parent.mkdir(exist_ok=True, parents=True)
+    path_to_geo.write_text(txt)
 
 
 def geo_to_msh(geometry_file: Path) -> Path:
