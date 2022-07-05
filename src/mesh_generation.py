@@ -2,7 +2,6 @@ import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
-import firedrake
 from firedrake import *
 
 import src.utils as utils
@@ -88,7 +87,7 @@ def generate_mesh(
     params: MeshGenerationParameters,
     curve: Curve,
     base_path: Path,
-) -> firedrake.Mesh:
+) -> Path:
     path = base_path / f"h={params.mesh_size}"
     geo_file = path / f"{curve.name}.geo"
 
@@ -96,11 +95,11 @@ def generate_mesh(
     msh_file = geo_to_msh(geo_file)
     msh_to_pvd(msh_file, params.curve_tag)
 
-    return Mesh(str(msh_file))
+    return msh_file
 
 
 if __name__ == "__main__":
-    base_path = Path("meshes")
+    base_path = Path("meshes") / "EXAMPLES"
 
     for mesh_size in _MESH_RESOLUTIONS:
         for curve in CURVES:
