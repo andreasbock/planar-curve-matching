@@ -43,6 +43,6 @@ Plane Surface(2) = {{2}};  // inner
 
 // Tag the loop, inside and outside
 Physical Line(curve_tag) = {LOOP_ARRAY};  // loop
-Physical Surface(17) = {{1}};  // inner loop
-Physical Surface(18) = {{2}};
+Physical Surface(outside_tag) = {{1}};  // inner loop
+Physical Surface(inside_tag) = {{2}};
 """
