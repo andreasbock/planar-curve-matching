@@ -1,17 +1,17 @@
-import subprocess
 from dataclasses import dataclass
 from pathlib import Path
+import subprocess
 
 from firedrake import *
 
-import src.utils as utils
-from src.meshes.geometry import *
 from src.curves import Curve, CURVES
+import src.utils as utils
+
+from src.mesh_generation.geometry import *
 
 
 _GMSH_BINARY = "gmsh"
 _SHELL = '/bin/zsh'
-_MESH_RESOLUTIONS = [1/(2*h) for h in range(1, 3)]
 
 
 @dataclass
@@ -99,8 +99,8 @@ def generate_mesh(
 
 
 if __name__ == "__main__":
-    base_path = Path("meshes") / "EXAMPLES"
-
+    base_path = utils.project_root() / "MESH_EXAMPLES"
+    _MESH_RESOLUTIONS = [1 / (2 * h) for h in range(1, 3)]
     for mesh_size in _MESH_RESOLUTIONS:
         for curve in CURVES:
             mesh_params = MeshGenerationParameters(mesh_size=mesh_size)

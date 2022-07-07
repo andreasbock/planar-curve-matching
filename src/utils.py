@@ -9,6 +9,10 @@ import sys
 import numpy as np
 
 
+def project_root() -> Path:
+    return Path(__file__).parent.parent
+
+
 def date_string():
     return datetime.now().strftime("%Y-%m-%d|%H.%M.%S")
 
