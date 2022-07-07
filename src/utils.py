@@ -111,3 +111,14 @@ def trace_interpolate(function_space: FunctionSpace, f: Function = None, mesh_ta
     solve(a == L, w)
     return w
 
+
+def compute_facet_area(mesh):
+    fs = FunctionSpace(mesh, "DGT", 0)
+    h = Function(fs)
+    h_trial, h_test = TrialFunction(fs), TestFunction(fs)
+    h_lhs = inner(h_trial, h_test)('+') * dS + inner(h_trial, h_test) * ds
+    h_rhs = inner(FacetArea(mesh), h_test)('+') * dS + inner(FacetArea(mesh), h_test) * ds
+    facetarea_problem = LinearVariationalProblem(h_lhs, h_rhs, h, constant_jacobian=False)
+    facetarea_solver = LinearVariationalSolver(facetarea_problem)
+    facetarea_solver.solve()
+    return h

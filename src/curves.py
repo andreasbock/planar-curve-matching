@@ -12,7 +12,7 @@ class Curve:
         self.name = name
         self.points = points
         self.n = len(points)
-        dists = [0.] + [dist(self.points[i] - self.points[(i + 1) % self.n]) for i in range(self.n)]
+        dists = [dist(self.points[i] - self.points[(i + 1) % self.n]) for i in range(self.n)]
         self._plist = 2*np.pi*np.cumsum(dists / np.sum(dists))
 
     def at(self, param: np.array) -> np.array:
@@ -21,14 +21,14 @@ class Curve:
     def _at(self, angle: float):
         if angle < 0 or 2*np.pi < angle:
             raise Exception(f"Angle {angle} not in [0, 2π].")
-        i = None  # PyCharm complains
+        e_prev = 0
         for i, e in enumerate(self._plist):
             if angle < e:
                 break
-        i_next = (i + 1) % self.n
-        w = (angle - self._plist[i]) / self.points[i_next]
-        start = self.points[i]
-        stop = self.points[i_next]
+            e_prev = e
+        w = (angle - e_prev) / e
+        start = self.points[(i - 1) % self.n]
+        stop = self.points[i % self.n]
         return w * start + (1 - w) * stop
 
     def __sub__(self, other) -> List[float]:
@@ -64,6 +64,3 @@ CURVES: List[Curve] = [
         ),
     ),
 ]
-
-if __name__ == "__main__":
-    curves = None
