@@ -2,10 +2,10 @@ from dataclasses import dataclass, field
 from typing import Type
 
 from firedrake import *
+from pathlib import Path
 
 import src.utils as utils
-from src.curves import Curve
-from src.mesh_generation.mesh_generation import MeshGenerationParameters, generate_mesh
+from src.mesh_generation.mesh_generation import CURVE_TAG
 
 
 __all__ = ["Diffeomorphism", "ShootingParameters", "GeodesicShooter"]
@@ -32,14 +32,12 @@ class ShootingParameters:
 
 class GeodesicShooter:
     def __init__(
-            self,
-            logger: utils.Logger,
-            template: Curve,
-            mesh_parameters: MeshGenerationParameters,
-            shooting_parameters: ShootingParameters = None,
+        self,
+        logger: utils.Logger,
+        mesh_path: Path,
+        shooting_parameters: ShootingParameters = None,
     ):
-        self.template = template
-        self.mesh_path = generate_mesh(mesh_parameters, template, logger.logger_dir)
+        self.mesh_path = mesh_path
         self.mesh = Mesh(str(self.mesh_path))
         self._logger = logger
         self.parameters = shooting_parameters or ShootingParameters()
@@ -47,62 +45,55 @@ class GeodesicShooter:
 
         # Function spaces
         self.XW = VectorFunctionSpace(self.mesh, "WXH3NC", degree=4, dim=2)
-        self.DG = FunctionSpace(self.mesh, "DG", 0)  # for plotting inside the curve
+        self.DG = FunctionSpace(self.mesh, "DG", 0)
         self.VDGT = VectorFunctionSpace(self.mesh, "DGT", degree=self.parameters.momentum_degree, dim=2)  # for momentum
         self.VCG = VectorFunctionSpace(self.mesh, "CG", degree=1, dim=2)  # for coordinate fields
         self.DGT = FunctionSpace(self.mesh, "DGT", self.parameters.momentum_degree)  # for momentum signal
+        self.velocity_bcs = AxisAlignedDirichletBC(self.XW, Function(self.XW), "on_boundary")
 
-        self.shape_function = utils.shape_function(self.DG, mesh_parameters.curve_tag)
-        self.phi = project(SpatialCoordinate(self.mesh), self.XW)
-        self.h = utils.compute_facet_area(self.mesh)
-
-        # set up velocity problem
+        # Velocity, momentum and diffeo
         self.u = Function(self.XW)
-        self.p = self.momentum_function()
-        v, dv = TrialFunction(self.XW), TestFunction(self.XW)
-        a = velocity_lhs(v, dv, self.phi, self.parameters.alpha)
+        self.p = None
+        self.phi = project(SpatialCoordinate(self.mesh), self.XW)
 
-        # compute number of edges that form the initial curve
-        h_inv = inv(self.h)
-        n = assemble(h_inv('+')*dS(mesh_parameters.curve_tag))  # reference interval has measure 1
-        shape_normal = utils.shape_normal(self.mesh, self.VDGT)
-        rhs = (Constant(2*pi/n) * h_inv * inner(dot(transpose(inv(grad(self.phi))), self.p * shape_normal), dv))('+') * dS(mesh_parameters.curve_tag)
-        bcs = AxisAlignedDirichletBC(self.XW, Function(self.XW), "on_boundary")
-        velocity_problem_u = LinearVariationalProblem(a, rhs, self.u, bcs=bcs, constant_jacobian=False)
-        self.velocity_solver_u = LinearVariationalSolver(velocity_problem_u, solver_parameters=self._solver_parameters)
+        # Functions we'll need for the source term/visualisation
+        self.shape_function = utils.shape_function(self.mesh, CURVE_TAG)
+        self.h_inv = inv(utils.compute_facet_area(self.mesh))
+        self.n = assemble(self.h_inv('+') * dS(CURVE_TAG))  # reference interval has measure 1
+        self.shape_normal = utils.shape_normal(self.mesh, self.VDGT)
 
-    def shoot(self, momentum_signal: function) -> Diffeomorphism:
+    def shoot(self, momentum_signal: function):
         dt = Constant(1 / self.parameters.time_steps)
         x, y = SpatialCoordinate(self.mesh)
         self.p = momentum_signal(x, y)
-
+        us = []
         for t in range(self.parameters.time_steps):
             self._logger.info(f"Shooting... t = {t}")
-            self.velocity_solver_u.solve()
-            self.phi += self.u * dt
+            self.velocity_solver()
+            us.append(self.u.copy())
+            self.phi.assign(self.phi + self.u * dt)
 
         # move the mesh for visualisation
         self._update_mesh()
-        return self.phi
+        return self.phi, us
+
+    def velocity_solver(self):
+        v, dv = TrialFunction(self.XW), TestFunction(self.XW)
+        a = velocity_lhs(v, dv, self.phi, self.parameters.alpha)
+        rhs = (Constant(2*pi/self.n) * self.h_inv
+               * inner(dot(transpose(inv(grad(self.phi))), self.p*self.shape_normal), dv))('+') * dS(CURVE_TAG)
+        solve(a == rhs, self.u, bcs=self.velocity_bcs, solver_parameters=self._solver_parameters)
 
     def momentum_function(self):
+        """ Used in the inverse problem solver. """
         return Function(self.DGT)
 
     def dump_parameters(self):
         self._logger.info(f"{self._solver_parameters}")
 
-
     def _update_mesh(self):
         self.mesh.coordinates.assign(project(self.phi, self.VCG))
         self.mesh.clear_spatial_index()
-
-    def _check_points(self, points):
-        """ Sanity check whether the points given by `points` lies within the
-        spatial domain. """
-        eps = self._domain_size + 1e-05
-        within_bounds = (points > -eps).all() and (points < eps).all()
-        if not within_bounds:
-            raise Exception(f"Template points moved outside domain: {points}.")
 
 
 class AxisAlignedDirichletBC(DirichletBC):
@@ -110,6 +101,38 @@ class AxisAlignedDirichletBC(DirichletBC):
 
 
 def velocity_lhs(v, dv, phi, alpha):
+    l, i, j, k, a, g, n = indices(7)
+
+    # 0th order
+    b = inner(v, dv)
+
+    # 1st order
+    alpha_1 = alpha
+    vx, vy = v
+    dvx, dvy = dv
+
+    J = grad(phi)
+
+    def gradJ(w):
+        return dot(grad(w), inv(J))
+
+    b += alpha_1*(inner(gradJ(vx), gradJ(dvx)) + inner(gradJ(vy), gradJ(dvy)))
+    return b * det(J) * dx
+
+    # 2nd order
+    alpha_2 = alpha**2
+    b += alpha_2 * _inv(phi[a].dx(i).dx(j)) * v[l].dx(i) + v[l].dx(i).dx(j) * _inv(phi[a].dx(i)) * _inv(phi[g].dx(j))
+
+    # 3rd order
+    alpha_3 = alpha**3
+    b += alpha_3 * (
+        _inv(phi[a].dx(i).dx(j).dx(k)) * v[l].dx(i) + _inv(phi[a].dx(i).dx(j)) * v[l].dx(i).dx(k) * _inv(phi[n].dx(k))
+        + v[l].dx(i).dx(j).dx(k) * _inv(phi[n].dx(k)) * _inv(phi[a].dx(i)) * _inv(phi[g].dx(j))
+        + v[l].dx(i).dx(j) * (_inv(phi[a].dx(i).dx(k)) * _inv(phi[g].dx(j)) + _inv(phi[a].dx(i)) * _inv(phi[g].dx(j).dx(k)))
+    )
+
+
+def rubbish_velocity_lhs(v, dv, phi, alpha):
     alpha_1 = alpha
     alpha_2 = alpha**2
     alpha_3 = alpha**3

@@ -1,11 +1,13 @@
+from dataclasses import dataclass
 from pathlib import Path
 from typing import List
+from firedrake import *
 import numpy as np
 
-import firedrake
-
-from src.enkf import *
-from src.shoot_pullback import Diffeomorphism
+import src.mesh_generation
+from src.curves import CURVES
+from src.mesh_generation.mesh_generation import MeshGenerationParameters
+from src.shoot_pullback import GeodesicShooter, ShootingParameters
 import src.utils as utils
 
 
@@ -13,7 +15,6 @@ __all__ = [
     "MANUFACTURED_SOLUTIONS_MOMENTUM",
     "MANUFACTURED_SOLUTIONS_PARAMS",
     "MANUFACTURED_SOLUTIONS_PATH",
-    "manufacture_solution",
     "ManufacturedSolution",
 ]
 
@@ -24,67 +25,99 @@ class ManufacturedMomentum:
     signal: function
 
 
-MANUFACTURED_SOLUTIONS_PATH = Path("MANUFACTURED_SOLUTIONS")
+TEMPLATE_MESHES_PATH = utils.project_root() / "TEMPLATE_MESHES"
+MANUFACTURED_SOLUTIONS_PATH = utils.project_root() / "MANUFACTURED_SOLUTIONS"
 ManufacturedParameterisation = np.array
-_NUM_LANDMARKS = [10, 20, 50]
 MANUFACTURED_SOLUTIONS_PARAMS: List[ManufacturedParameterisation] = [
-    utils.uniform_parameterisation(n) for n in _NUM_LANDMARKS
+    utils.uniform_parameterisation(n) for n in [10]#, 20, 50]
 ]
+
+
+def _expand(x, y):
+    return 5
+
+
+def _contract(x, y):
+    return -5
+
+
+def _star(x, y):
+    return 4 * cos(2 * pi * x / 5)
+
+
+def _teardrop(x, y):
+    return conditional(y < 0, -6 * sign(y), 6 * exp(-x ** 2 / 5))
+
+
+def _squeeze(x, y):
+    return conditional(x < -0.3, 3* exp(-(y ** 2 / 5)), -6 * sin(x / 5) * abs(y))
+
+
 MANUFACTURED_SOLUTIONS_MOMENTUM = [
-    ManufacturedMomentum(name="star", signal=lambda x, y: Constant(70)*cos(2*pi*x/5)),
-    ManufacturedMomentum(name="teardrop", signal=lambda x, y: conditional(y < 0, -70*sign(y), 90*exp(-x**2/5))),
-    ManufacturedMomentum(name="squeeze", signal=lambda x, y: conditional(x < -0.3, 2*10**2*exp(-(y**2/5)), -40*sin(x/5)*abs(y))),
+    ManufacturedMomentum(name="star", signal=_star),
+    ManufacturedMomentum(name="teardrop", signal=_teardrop),
+    ManufacturedMomentum(name="squeeze", signal=_squeeze),
+    ManufacturedMomentum(name="expand", signal=_expand),
+    ManufacturedMomentum(name="contract", signal=_contract),
 ]
 
 
 @dataclass(frozen=True)
 class ManufacturedSolution:
-    diffeomorphism: Diffeomorphism  # this is the diffeomorphism
-    target: np.array  # the points on the curve
+    target: np.array
+    mesh_path: Path
     momentum: ManufacturedMomentum
     parameterisation: ManufacturedParameterisation
 
-    def dump(self, base_path: Path, shape_function: firedrake.Function) -> None:
-        path = base_path / f"MANUFACTURED_SOLUTION_MOMENTUM={self.momentum.name}_LANDMARKS={len(self.parameterisation)}"
-        File(path / "target.pvd").write(shape_function)
-        utils.pdump(self.diffeomorphism, path / "diffeomorphism")
-        utils.pdump(self.target, path / "landmarks")
+    def dump(self, base_path: Path, mesh_name: str, shape_function: Function) -> None:
+        path = base_path / f"{mesh_name}_{self.momentum.name}_LANDMARKS={len(self.parameterisation)}"
+        if not path.parent.exists():
+            path.parent.mkdir()
         utils.pdump(self.momentum, path / "momentum")
         utils.pdump(self.parameterisation, path / "parameterisation")
+        utils.pdump(self.target, path / "landmarks_target")
+        File(path / F"{mesh_name}_{self.momentum.name}.pvd").write(shape_function)
+        print(f"Wrote solution to {path}.")
 
     @staticmethod
-    def load(path: Path) -> "ManufacturedSolution":
-        return ManufacturedSolution(
-            diffeomorphism=utils.pload(path / "diffeomorphism"),
-            landmarks=utils.pload(path / "landmarks"),
-            momentum_truth=utils.pload(path / "momentum_truth"),
-            thetas_truth=utils.pload(path / "thetas_truth"),
-        )
-
-
-def manufacture_solution(
-    forward_operator: GeodesicShooter,
-    momentum: ManufacturedMomentum,
-    param: ManufacturedParameterisation,
-) -> ManufacturedSolution:
-    diffeomorphism = forward_operator.shoot(momentum.signal)
-    landmarks = forward_operator.evaluate_parameterisation(diffeomorphism, param)
-
-    return ManufacturedSolution(
-        diffeomorphism,
-        landmarks,
-        momentum,
-        param,
-    )
+    def load(momenta_name: str, resolution: Path) -> "ManufacturedSolution":
+        raise NotImplemented
 
 
 if __name__ == "__main__":
     logger = utils.Logger(MANUFACTURED_SOLUTIONS_PATH / "manufactured_solutions.log")
-    mesh = Mesh("../meshes/mesh0.msh")
-    forward_operator = GeodesicShooter(mesh, logger)
 
-    for momentum in MANUFACTURED_SOLUTIONS_MOMENTUM:
-        for thetas in MANUFACTURED_SOLUTIONS_PARAMS:
-            logger.info(f"Manufacturing solution: '{momentum.name}' with {thetas} landmarks.")
-            manufactured_solution = manufacture_solution(forward_operator, momentum, thetas)
-            manufactured_solution.dump(MANUFACTURED_SOLUTIONS_PATH, forward_operator.shape_function)
+    shooting_parameters = ShootingParameters()
+    MESH_RESOLUTIONS = [1 / (2 * h) for h in range(1, 2)]
+
+    for template in CURVES:
+        for resolution in MESH_RESOLUTIONS:
+            logger.info(f"Generating mesh for curve: '{template.name}' with resolution: h={resolution}.")
+
+            mesh_params = MeshGenerationParameters(mesh_size=resolution)
+            mesh_path = src.mesh_generation.generate_mesh(mesh_params, template, MANUFACTURED_SOLUTIONS_PATH)
+
+            for momentum in MANUFACTURED_SOLUTIONS_MOMENTUM:
+                shooter = GeodesicShooter(logger, mesh_path, shooting_parameters)
+                diffeo, us = shooter.shoot(momentum.signal)
+
+                # start some logging
+                template_and_momentum_name = f"{mesh_path.stem}_{momentum.name}"
+                path = mesh_path.parent / template_and_momentum_name
+                if not path.parent.exists():
+                    path.parent.mkdir()
+
+                utils.pdump(momentum, path / "momentum")
+                File(path / f"{template_and_momentum_name}.pvd").write(shooter.shape_function)
+
+                # log evaluation
+                for parameterisation in MANUFACTURED_SOLUTIONS_PARAMS:
+                    try:
+                        target = utils.soft_eval(diffeo, shooter.VCG, template.at(parameterisation))
+                        utils.check_points(mesh_params.min_xy, mesh_params.max_xy, target)
+                    except Exception as e:
+                        print(e)
+                        continue
+                    utils.pdump(parameterisation, path / f"parameterisation_m={len(parameterisation)}")
+                    utils.pdump(target, path / f"target_m={len(parameterisation)}")
+

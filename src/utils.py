@@ -93,6 +93,14 @@ def shape_function(mesh: firedrake.Mesh, mesh_tag: int):
     return shape
 
 
+def check_points(domain_min: float, domain_max: float, points: np.array):
+    """ Sanity check whether the points given by `points` lies within the
+    spatial domain. """
+    within_bounds = (points > domain_min).all() and (points < domain_max).all()
+    if not within_bounds:
+        raise Exception(f"Template points moved outside domain: {points}.")
+
+
 def shape_normal(mesh: firedrake.Mesh, vector_function_space: firedrake.VectorFunctionSpace):
     mesh_tag = 10
     n = FacetNormal(mesh)
@@ -127,4 +135,4 @@ def compute_facet_area(mesh):
 
 def soft_eval(diffeo, fs, points):
     soft_diffeo = Function(fs).project(diffeo)
-    return soft_diffeo.at(points)
+    return np.array(soft_diffeo.at(points))

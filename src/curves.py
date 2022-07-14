@@ -34,16 +34,16 @@ class Curve:
 
 CURVES: List[Curve] = [
     Curve(
-        name="small_triangle",
-        points=np.array([[-4, -4], [6, 2], [4, 4]]),
-    ),
-    Curve(
         name="circle",
         points=5 * np.array(
             [
                 (np.cos(t), np.sin(t)) for t in np.linspace(0, 2*np.pi, num=25)
-            ]
+            ][:-1]
         )
+    ),
+    Curve(
+        name="small_triangle",
+        points=np.array([[-4, -4], [6, 2], [4, 4]]),
     ),
     Curve(
         name="random_shape",

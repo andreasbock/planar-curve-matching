@@ -13,7 +13,7 @@ from src.mesh_generation.geometry import *
 _GMSH_BINARY = "gmsh"
 _SHELL = '/bin/zsh'
 
-_CURVE_TAG = 10
+CURVE_TAG = 10
 _INNER_TAG = 6
 _OUTER_TAG = 7
 
@@ -47,7 +47,7 @@ def write_geo_file(
         min_xy=params.min_xy,
         max_xy=params.max_xy,
         mesh_size=params.mesh_size,
-        CURVE_TAG=_CURVE_TAG,
+        CURVE_TAG=CURVE_TAG,
         INNER_TAG=_INNER_TAG,
         OUTER_TAG=_OUTER_TAG,
         POINTS=points,
@@ -79,7 +79,7 @@ def msh_to_pvd(msh_file: Path, overwrite: bool = False) -> None:
     if pvd_file.exists() or overwrite:
         return
     mesh = Mesh(str(msh_file))
-    indicator = utils.shape_function(mesh, mesh_tag=_CURVE_TAG)
+    indicator = utils.shape_function(mesh, mesh_tag=CURVE_TAG)
 
     File(pvd_file).write(indicator)
     print(f"Wrote {pvd_file}.")
