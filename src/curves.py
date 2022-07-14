@@ -31,14 +31,11 @@ class Curve:
         stop = self.points[i % self.n]
         return w * start + (1 - w) * stop
 
-    def __sub__(self, other) -> List[float]:
-        pass
-
 
 CURVES: List[Curve] = [
     Curve(
         name="small_triangle",
-        points=np.array([[1, 1], [3, 1], [2, 2]]),
+        points=np.array([[-4, -4], [6, 2], [4, 4]]),
     ),
     Curve(
         name="circle",

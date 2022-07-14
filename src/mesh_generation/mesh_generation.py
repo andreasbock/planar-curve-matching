@@ -4,7 +4,7 @@ import subprocess
 
 from firedrake import *
 
-from src.curves import Curve, CURVES
+from src.curves import Curve
 import src.utils as utils
 
 from src.mesh_generation.geometry import *
@@ -13,15 +13,16 @@ from src.mesh_generation.geometry import *
 _GMSH_BINARY = "gmsh"
 _SHELL = '/bin/zsh'
 
+_CURVE_TAG = 10
+_INNER_TAG = 6
+_OUTER_TAG = 7
+
 
 @dataclass
 class MeshGenerationParameters:
     mesh_size: float
     min_xy: int = -10
     max_xy: int = 10
-    curve_tag: int = 10
-    inner_tag: int = 6
-    outer_tag: int = 7
 
 
 def write_geo_file(
@@ -46,9 +47,9 @@ def write_geo_file(
         min_xy=params.min_xy,
         max_xy=params.max_xy,
         mesh_size=params.mesh_size,
-        CURVE_TAG=params.curve_tag,
-        INNER_TAG=params.inner_tag,
-        OUTER_TAG=params.outer_tag,
+        CURVE_TAG=_CURVE_TAG,
+        INNER_TAG=_INNER_TAG,
+        OUTER_TAG=_OUTER_TAG,
         POINTS=points,
         LINES=lines,
         LOOP_ARRAY=loop_array,
@@ -59,8 +60,11 @@ def write_geo_file(
     path_to_geo.write_text(txt)
 
 
-def geo_to_msh(geometry_file: Path) -> Path:
+def geo_to_msh(geometry_file: Path, overwrite: bool = False) -> Path:
     msh_file = geometry_file.parent / f"{geometry_file.stem}.msh"
+    if msh_file.exists() or overwrite:
+        return msh_file
+
     gmsh_command = f"{_GMSH_BINARY} {geometry_file} -2 -o {msh_file}"
     print(f"Running the command: '{gmsh_command}'.")
     return_code = subprocess.call(gmsh_command, shell=True, executable=_SHELL)
@@ -70,15 +74,13 @@ def geo_to_msh(geometry_file: Path) -> Path:
     return msh_file
 
 
-def msh_to_pvd(msh_file: Path, inside_tag: int = None) -> None:
-    mesh = Mesh(str(msh_file))
-    function_space = FunctionSpace(mesh, "CG", 1)
-    if inside_tag:
-        indicator = utils.shape_function(function_space, mesh_tag=inside_tag)
-    else:
-        indicator = Function(function_space)
-
+def msh_to_pvd(msh_file: Path, overwrite: bool = False) -> None:
     pvd_file = msh_file.parent / f"{msh_file.stem}.pvd"
+    if pvd_file.exists() or overwrite:
+        return
+    mesh = Mesh(str(msh_file))
+    indicator = utils.shape_function(mesh, mesh_tag=_CURVE_TAG)
+
     File(pvd_file).write(indicator)
     print(f"Wrote {pvd_file}.")
 
@@ -93,15 +95,6 @@ def generate_mesh(
 
     write_geo_file(params, curve, geo_file)
     msh_file = geo_to_msh(geo_file)
-    msh_to_pvd(msh_file, params.curve_tag)
+    msh_to_pvd(msh_file)
 
     return msh_file
-
-
-if __name__ == "__main__":
-    base_path = utils.project_root() / "MESH_EXAMPLES"
-    _MESH_RESOLUTIONS = [1 / (2 * h) for h in range(1, 3)]
-    for mesh_size in _MESH_RESOLUTIONS:
-        for curve in CURVES:
-            mesh_params = MeshGenerationParameters(mesh_size=mesh_size)
-            generate_mesh(mesh_params, curve, base_path)

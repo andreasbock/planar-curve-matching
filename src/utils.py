@@ -85,7 +85,8 @@ def pload(name):
     return f
 
 
-def shape_function(function_space: FunctionSpace, mesh_tag: int):
+def shape_function(mesh: firedrake.Mesh, mesh_tag: int):
+    function_space = FunctionSpace(mesh, "CG", 1)
     v, dv = TrialFunction(function_space), TestFunction(function_space)
     shape = Function(function_space, name="shape_function")
     solve(v*dv*dx == dv('+')*dS(mesh_tag), shape)
@@ -122,3 +123,8 @@ def compute_facet_area(mesh):
     facetarea_solver = LinearVariationalSolver(facetarea_problem)
     facetarea_solver.solve()
     return h
+
+
+def soft_eval(diffeo, fs, points):
+    soft_diffeo = Function(fs).project(diffeo)
+    return soft_diffeo.at(points)
