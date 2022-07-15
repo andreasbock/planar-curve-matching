@@ -79,7 +79,7 @@ class GeodesicShooter:
 
     def velocity_solver(self):
         v, dv = TrialFunction(self.XW), TestFunction(self.XW)
-        a = velocity_lhs(v, dv, self.phi, self.parameters.alpha)
+        a = velocity_lhs(v, dv, self.phi, self.parameters.alpha)#, self.mesh)
         rhs = (Constant(2*pi/self.n) * self.h_inv
                * inner(dot(transpose(inv(grad(self.phi))), self.p*self.shape_normal), dv))('+') * dS(CURVE_TAG)
         solve(a == rhs, self.u, bcs=self.velocity_bcs, solver_parameters=self._solver_parameters)
@@ -101,38 +101,6 @@ class AxisAlignedDirichletBC(DirichletBC):
 
 
 def velocity_lhs(v, dv, phi, alpha):
-    l, i, j, k, a, g, n = indices(7)
-
-    # 0th order
-    b = inner(v, dv)
-
-    # 1st order
-    alpha_1 = alpha
-    vx, vy = v
-    dvx, dvy = dv
-
-    J = grad(phi)
-
-    def gradJ(w):
-        return dot(grad(w), inv(J))
-
-    b += alpha_1*(inner(gradJ(vx), gradJ(dvx)) + inner(gradJ(vy), gradJ(dvy)))
-    return b * det(J) * dx
-
-    # 2nd order
-    alpha_2 = alpha**2
-    b += alpha_2 * _inv(phi[a].dx(i).dx(j)) * v[l].dx(i) + v[l].dx(i).dx(j) * _inv(phi[a].dx(i)) * _inv(phi[g].dx(j))
-
-    # 3rd order
-    alpha_3 = alpha**3
-    b += alpha_3 * (
-        _inv(phi[a].dx(i).dx(j).dx(k)) * v[l].dx(i) + _inv(phi[a].dx(i).dx(j)) * v[l].dx(i).dx(k) * _inv(phi[n].dx(k))
-        + v[l].dx(i).dx(j).dx(k) * _inv(phi[n].dx(k)) * _inv(phi[a].dx(i)) * _inv(phi[g].dx(j))
-        + v[l].dx(i).dx(j) * (_inv(phi[a].dx(i).dx(k)) * _inv(phi[g].dx(j)) + _inv(phi[a].dx(i)) * _inv(phi[g].dx(j).dx(k)))
-    )
-
-
-def rubbish_velocity_lhs(v, dv, phi, alpha):
     alpha_1 = alpha
     alpha_2 = alpha**2
     alpha_3 = alpha**3
