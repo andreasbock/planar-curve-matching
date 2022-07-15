@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 import firedrake
 from firedrake import *
 import logging as _logging
@@ -7,6 +8,9 @@ import os
 from pathlib import Path
 import sys
 import numpy as np
+
+plt.rc('text', usetex=True)
+plt.rc('font', family='serif')
 
 
 def project_root() -> Path:
@@ -136,3 +140,15 @@ def compute_facet_area(mesh):
 def soft_eval(diffeo, fs, points):
     soft_diffeo = Function(fs).project(diffeo)
     return np.array(soft_diffeo.at(points))
+
+
+def plot_norms(u_norms, p_norms, time_steps, path):
+    plt.figure()
+    plt.plot(u_norms, c='r', marker='x', label='$\| \hat{u}_{t_k} \|_V$')
+    plt.plot(p_norms, c='b', marker='o', label='$\| p_{t_k} \|$')
+    plt.xlabel(r'Iteration')
+    plt.ylabel(r'Norm')
+    plt.xticks(range(time_steps), range(1, time_steps + 1))
+    plt.grid(linestyle='dotted')
+    plt.legend(loc='best', fontsize=14)
+    plt.savefig(path / "norms.pdf", bbox_inches='tight')

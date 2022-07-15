@@ -26,7 +26,7 @@ class ShootingParameters:
         }
     )
     momentum_degree: int = 1
-    alpha: float = 0.5
+    alpha: float = 1
     time_steps: int = 10
 
 
@@ -52,9 +52,9 @@ class GeodesicShooter:
         self.velocity_bcs = AxisAlignedDirichletBC(self.XW, Function(self.XW), "on_boundary")
 
         # Velocity, momentum and diffeo
+        self.phi = project(SpatialCoordinate(self.mesh), self.XW)
         self.u = Function(self.XW)
         self.p = None
-        self.phi = project(SpatialCoordinate(self.mesh), self.XW)
 
         # Functions we'll need for the source term/visualisation
         self.shape_function = utils.shape_function(self.mesh, CURVE_TAG)
@@ -66,23 +66,32 @@ class GeodesicShooter:
         dt = Constant(1 / self.parameters.time_steps)
         x, y = SpatialCoordinate(self.mesh)
         self.p = momentum_signal(x, y)
-        us = []
+        u_norms, p_norms = [], []
+
+        self._logger.info("Shooting...")
         for t in range(self.parameters.time_steps):
-            self._logger.info(f"Shooting... t = {t}")
-            self.velocity_solver()
-            us.append(self.u.copy())
+            u_norm, p_norm = self.velocity_solve()
             self.phi.assign(self.phi + self.u * dt)
+
+            u_norms.append(u_norm)
+            p_norms.append(p_norm)
 
         # move the mesh for visualisation
         self._update_mesh()
-        return self.phi, us
+        return self.phi, u_norms, p_norms
 
-    def velocity_solver(self):
+    def velocity_solve(self):
         v, dv = TrialFunction(self.XW), TestFunction(self.XW)
-        a = velocity_lhs(v, dv, self.phi, self.parameters.alpha)#, self.mesh)
-        rhs = (Constant(2*pi/self.n) * self.h_inv
-               * inner(dot(transpose(inv(grad(self.phi))), self.p*self.shape_normal), dv))('+') * dS(CURVE_TAG)
+        a = velocity_lhs(v, dv, self.phi, self.parameters.alpha)
+
+        momentum_form = (Constant(2*pi/self.n) * self.h_inv
+                         * dot(transpose(inv(grad(self.phi))), self.p * self.shape_normal))
+        rhs = inner(momentum_form, dv)('+') * dS(CURVE_TAG)
         solve(a == rhs, self.u, bcs=self.velocity_bcs, solver_parameters=self._solver_parameters)
+        return (
+            assemble(velocity_lhs(self.u, self.u, self.phi, self.parameters.alpha)),
+            assemble(inner(momentum_form, momentum_form)('+') * dS(CURVE_TAG))
+        )
 
     def momentum_function(self):
         """ Used in the inverse problem solver. """

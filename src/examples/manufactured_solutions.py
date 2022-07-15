@@ -29,7 +29,7 @@ TEMPLATE_MESHES_PATH = utils.project_root() / "TEMPLATE_MESHES"
 MANUFACTURED_SOLUTIONS_PATH = utils.project_root() / "MANUFACTURED_SOLUTIONS"
 ManufacturedParameterisation = np.array
 MANUFACTURED_SOLUTIONS_PARAMS: List[ManufacturedParameterisation] = [
-    utils.uniform_parameterisation(n) for n in [10]#, 20, 50]
+    utils.uniform_parameterisation(n) for n in [10, 20, 50]
 ]
 
 
@@ -98,21 +98,26 @@ if __name__ == "__main__":
             mesh_path = src.mesh_generation.generate_mesh(mesh_params, template, MANUFACTURED_SOLUTIONS_PATH)
 
             for momentum in MANUFACTURED_SOLUTIONS_MOMENTUM:
-                shooter = GeodesicShooter(logger, mesh_path, shooting_parameters)
-                diffeo, us = shooter.shoot(momentum.signal)
+                logger.info(f"Shooting with `{momentum.name}`.")
 
-                # start some logging
+                shooter = GeodesicShooter(logger, mesh_path, shooting_parameters)
+                diffeo, u_norms, p_norms = shooter.shoot(momentum.signal)
+
                 template_and_momentum_name = f"{mesh_path.stem}_{momentum.name}"
                 path = mesh_path.parent / template_and_momentum_name
+
                 if not path.parent.exists():
                     path.parent.mkdir()
 
-                utils.pdump(momentum, path / "momentum")
+                logger.info(f"Logging to `{path}`.")
                 File(path / f"{template_and_momentum_name}.pvd").write(shooter.shape_function)
+                utils.pdump(momentum, path / "momentum")
+                utils.plot_norms(u_norms, p_norms, shooting_parameters.time_steps, path)
 
                 # log evaluation
                 for parameterisation in MANUFACTURED_SOLUTIONS_PARAMS:
                     try:
+                        # TODO: add Xu-Wu point evaluation
                         target = utils.soft_eval(diffeo, shooter.VCG, template.at(parameterisation))
                         utils.check_points(mesh_params.min_xy, mesh_params.max_xy, target)
                     except Exception as e:
