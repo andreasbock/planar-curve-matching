@@ -28,7 +28,7 @@ class Logger:
     def __init__(self, logger_path):
         self.logger_path = logger_path
         self.logger_dir = self.logger_path.parent
-        self._logger = _basic_logger(logger_path)
+        self._logger = basic_logger(logger_path)
 
     def info(self, msg):
         self._logger.info(msg)
@@ -43,7 +43,7 @@ class Logger:
         self._logger.log(msg, level)
 
 
-def _basic_logger(logger_path: Path) -> _logging.Logger:
+def basic_logger(logger_path: Path) -> _logging.Logger:
     if not logger_path.parent.exists():
         logger_path.parent.mkdir()
 
