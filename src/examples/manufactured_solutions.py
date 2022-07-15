@@ -7,7 +7,7 @@ import numpy as np
 import src.mesh_generation
 from src.curves import CURVES
 from src.mesh_generation.mesh_generation import MeshGenerationParameters
-from src.shoot_pullback import GeodesicShooter, ShootingParameters
+from src.shooting import GeodesicShooter, ShootingParameters
 import src.utils as utils
 
 
