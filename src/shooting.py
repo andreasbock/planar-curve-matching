@@ -4,6 +4,8 @@ from typing import Type
 from firedrake import *
 from pathlib import Path
 
+import numpy as np
+
 import src.utils as utils
 from src.mesh_generation.mesh_generation import CURVE_TAG
 
@@ -44,7 +46,7 @@ class GeodesicShooter:
         self._solver_parameters = self.parameters.velocity_solver_parameters
 
         # Function spaces
-        self.XW = VectorFunctionSpace(self.mesh, "WXH3NC", degree=4, dim=2)
+        self.XW = VectorFunctionSpace(self.mesh, "WXRobH3NC", degree=7, dim=2)
         self.DG = FunctionSpace(self.mesh, "DG", 0)
         self.VDGT = VectorFunctionSpace(self.mesh, "DGT", degree=self.parameters.momentum_degree, dim=2)  # for momentum
         self.VCG = VectorFunctionSpace(self.mesh, "CG", degree=1, dim=2)  # for coordinate fields
@@ -65,7 +67,7 @@ class GeodesicShooter:
     def shoot(self, momentum_signal: function):
         dt = Constant(1 / self.parameters.time_steps)
         x, y = SpatialCoordinate(self.mesh)
-        self.p = momentum_signal(x, y)
+        self.p = momentum_signal(x, y) * self.shape_normal
         u_norms, p_norms = [], []
 
         self._logger.info("Shooting...")
@@ -82,16 +84,24 @@ class GeodesicShooter:
 
     def velocity_solve(self):
         v, dv = TrialFunction(self.XW), TestFunction(self.XW)
-        a = velocity_lhs(v, dv, self.phi, self.parameters.alpha)
+        w, z = Function(self.XW), Function(self.XW)
 
-        momentum_form = (Constant(2*pi/self.n) * self.h_inv
-                         * dot(transpose(inv(grad(self.phi))), self.p * self.shape_normal))
-        rhs = inner(momentum_form, dv)('+') * dS(CURVE_TAG)
-        solve(a == rhs, self.u, bcs=self.velocity_bcs, solver_parameters=self._solver_parameters)
-        return (
-            assemble(velocity_lhs(self.u, self.u, self.phi, self.parameters.alpha)),
-            assemble(inner(momentum_form, momentum_form)('+') * dS(CURVE_TAG))
-        )
+        momentum = dot(transpose(inv(grad(self.phi))), self.p)
+        momentum_form = Constant(2*pi) * self.h_inv * momentum
+        rhs = dot(momentum_form, dv)('+') * dS(CURVE_TAG)
+
+        J = grad(self.phi)
+        detJ = det(J)
+        J_inv = inv(J)
+
+        a, l = h1_form(v, dv, J_inv, detJ, alpha=self.parameters.alpha)
+        solve(a == rhs, z, bcs=self.velocity_bcs, solver_parameters=self._solver_parameters)
+        solve(a == l(z), w, bcs=self.velocity_bcs, solver_parameters=self._solver_parameters)
+        solve(a == l(w), self.u, bcs=self.velocity_bcs, solver_parameters=self._solver_parameters)
+
+        momentum_norm = np.sqrt(assemble(inner(momentum_form, momentum)('+') * dS(CURVE_TAG)))
+        u_norm = np.sqrt(assemble(h1_form(self.u, self.u, J_inv, detJ, alpha=self.parameters.alpha)[0]))
+        return u_norm, momentum_norm
 
     def momentum_function(self):
         """ Used in the inverse problem solver. """
@@ -109,35 +119,11 @@ class AxisAlignedDirichletBC(DirichletBC):
     axis_aligned = True
 
 
-def velocity_lhs(v, dv, phi, alpha):
-    alpha_1 = alpha
-    alpha_2 = alpha**2
-    alpha_3 = alpha**3
-
-    J = grad(phi)
-    JT = transpose(J)
-    J_inv = inv(J)
-
-    def gradJ(w):
-        return dot(grad(w), J_inv)
-
-    def deltaJ(w):
-        grad_w = grad(w)
-        H = grad(grad_w)
-        return dot(JT, dot(H, J)) + dot(grad_w, grad(J))
-
-    def triJ(w):
-        grad_w = grad(w)
-        H = grad(grad_w)
-        T = grad(H)
-        return 2 * dot(grad(JT), dot(H, J)) + dot(JT, dot(T, J)) + dot(H, grad(J)) + dot(grad_w, grad(grad(J)))
+def h1_form(v, dv, J_inv, detJ, alpha):
+    gradJ = lambda w: dot(grad(w), J_inv)
 
     vx, vy = v
     dvx, dvy = dv
 
-    a = inner(v, dv)
-    a += alpha_1*(inner(gradJ(vx), gradJ(dvx)) + inner(gradJ(vy), gradJ(dvy)))
-    a += alpha_2*(inner(deltaJ(vx), deltaJ(dvx)) + inner(deltaJ(vy), deltaJ(dvy)))
-    a += alpha_3*(inner(triJ(vx), triJ(dvx)) + inner(triJ(vy), triJ(dvy)))
-
-    return a * det(J) * dx
+    a = (inner(v, dv) + alpha * (inner(gradJ(vx), gradJ(dvx)) + inner(gradJ(vy), gradJ(dvy)))) * detJ * dx
+    return a, lambda f: inner(f, dv) * detJ * dx
