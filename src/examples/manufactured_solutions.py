@@ -34,31 +34,31 @@ MANUFACTURED_SOLUTIONS_PARAMS: List[ManufacturedParameterisation] = [
 
 
 def _expand(x, y):
-    return 5
+    return 50.0/72.
 
 
 def _contract(x, y):
-    return -5
+    return -50./72.
 
 
 def _star(x, y):
-    return 4 * cos(2 * pi * x / 5)
+    return 40/72. * cos(2 * pi * x / 5)
 
 
 def _teardrop(x, y):
-    return conditional(y < 0, -6 * sign(y), 6 * exp(-x ** 2 / 5))
+    return conditional(y < 0, -60/72. * sign(y), 60/72. * exp(-x ** 2 / 5))
 
 
 def _squeeze(x, y):
-    return conditional(x < -0.3, 3* exp(-(y ** 2 / 5)), -6 * sin(x / 5) * abs(y))
+    return conditional(x < -0.3, 30/72. * exp(-(y ** 2 / 5)), -60/72. * sin(x / 5) * abs(y))
 
 
 MANUFACTURED_SOLUTIONS_MOMENTUM = [
+    ManufacturedMomentum(name="expand", signal=_expand),
+    ManufacturedMomentum(name="contract", signal=_contract),
     ManufacturedMomentum(name="star", signal=_star),
     ManufacturedMomentum(name="teardrop", signal=_teardrop),
     ManufacturedMomentum(name="squeeze", signal=_squeeze),
-    ManufacturedMomentum(name="expand", signal=_expand),
-    ManufacturedMomentum(name="contract", signal=_contract),
 ]
 
 
