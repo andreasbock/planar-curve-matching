@@ -1,3 +1,5 @@
+.DS_STORE
+*.idea
 *.pvd
 *.vtu*
 *.pvtu*
@@ -30,3 +32,5 @@ results*
 .old_stuff
 
 meshes/h*
+
+MANUFACTURED*
