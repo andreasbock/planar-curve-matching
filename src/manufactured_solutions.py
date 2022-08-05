@@ -86,7 +86,7 @@ def get_solutions(
     solutions = []
     for momentum, shape, res, lms in itertools.product(momenta, shapes, resolutions, landmarks):
         name = f"{shape}_{momentum}"
-        solution_path = MANUFACTURED_SOLUTIONS_PATH / f"h={res}" / name / f"{name}_LANDMARKS={len(lms)}"
+        solution_path = MANUFACTURED_SOLUTIONS_PATH / f"h={res}" / name / f"{name}_LANDMARKS={lms}"
         solutions.append(ManufacturedSolution.load(solution_path))
     return solutions
 
