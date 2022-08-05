@@ -61,3 +61,4 @@ CURVES: List[Curve] = [
         ),
     ),
 ]
+CURVE_NAMES = [c.name for c in CURVES]

@@ -9,6 +9,7 @@ from pathlib import Path
 import sys
 import numpy as np
 
+
 plt.rc('text', usetex=True)
 plt.rc('font', family='serif')
 
@@ -77,13 +78,13 @@ def uniform_parameterisation(n):
 def pdump(f, name):
     directory = os.path.dirname(name)
     os.makedirs(directory, exist_ok=True)
-    po = open("{}.pickle".format(name), "wb")
+    po = open("{}".format(name), "wb")
     pickle.dump(f, po)
     po.close()
 
 
 def pload(name):
-    po = open("{}.pickle".format(name), "rb")
+    po = open(f"{name}", "rb")
     f = pickle.load(po)
     po.close()
     return f
