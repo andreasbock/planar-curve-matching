@@ -30,22 +30,28 @@ def create_dir_from_path_if_not_exists(path):
 
 class Logger:
 
-    def __init__(self, logger_path):
-        self.logger_path = logger_path
-        self.logger_dir = self.logger_path.parent
+    def __init__(self, logger_path: Path, communicator):
+        self.log_path = logger_path
+        self.logger_dir = self.log_path.parent
+        self.logger_dir.mkdir(exist_ok=True)
         self._logger = basic_logger(logger_path)
+        self._communicator = communicator
 
     def info(self, msg):
-        self._logger.info(msg)
+        if self._communicator.Get_rank() == 0:
+            self._logger.info(msg)
 
     def debug(self, msg):
-        self._logger.debug(msg)
+        if self._communicator.Get_rank() == 0:
+            self._logger.debug(msg)
 
     def critical(self, msg):
-        self._logger.critical(msg)
+        if self._communicator.Get_rank() == 0:
+            self._logger.critical(msg)
 
     def log(self, msg, level):
-        self._logger.log(msg, level)
+        if self._communicator.Get_rank() == 0:
+            self._logger.log(msg, level)
 
 
 def basic_logger(logger_path: Path) -> _logging.Logger:
@@ -76,9 +82,14 @@ def uniform_parameterisation(n):
 
 
 def pdump(f, name):
-    directory = os.path.dirname(name)
-    os.makedirs(directory, exist_ok=True)
-    po = open("{}".format(name), "wb")
+    path = Path(name)
+    if not path.parent.exists():
+        path.parent.mkdir()
+
+    #directory = os.path.dirname(name)
+    #os.makedirs(directory, exist_ok=True)
+
+    po = open(f"{name}", "wb")
     pickle.dump(f, po)
     po.close()
 
