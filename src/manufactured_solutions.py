@@ -1,7 +1,7 @@
 import itertools
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Union, Any
+from typing import List, Any
 
 from firedrake import *
 import numpy as np
@@ -48,9 +48,11 @@ class ManufacturedSolution:
     _momentum_name: str = "momentum"
     _parameterisation_name: str = "parameterisation"
 
+    def name(self) -> str:
+        return f"{self.mesh_path.stem}_{self.momentum.name}_LANDMARKS={len(self.parameterisation)}"
+
     def dump(self, base_path: Path) -> None:
-        mesh_name = self.mesh_path.stem
-        path = base_path / f"{mesh_name}_{self.momentum.name}_LANDMARKS={len(self.parameterisation)}"
+        path = base_path / self.name()
         if not path.parent.exists():
             path.parent.mkdir()
 
