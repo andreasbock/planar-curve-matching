@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 import shutil
 import scipy
 import numpy as np
@@ -56,11 +56,11 @@ class EnsembleKalmanFilter:
         self.sqrt_gamma_inv = None
 
     def run_filter(self, momentum, parameterisation, target, max_iterations):
-        self.dump_parameters()
+        self.dump_parameters(target)
         self.momentum = momentum
         self.parameterisation = parameterisation
 
-        self.gamma = self._inverse_problem_params.gamma_scale * np.eye(sum(target.shape), dtype='float')
+        self.gamma = self._inverse_problem_params.gamma_scale * np.eye(product(target.shape), dtype='float')
         self.sqrt_gamma = scipy.linalg.sqrtm(self.gamma)
         self.sqrt_gamma_inv = np.linalg.inv(self.sqrt_gamma)
 
@@ -79,10 +79,10 @@ class EnsembleKalmanFilter:
 
             # log everything
             if self._rank == 0:
-                utils.pdump(shape_mean, self._logger.logger_path / f"w_mean_iter={iteration}")
-                utils.pdump(theta_mean, self._logger.logger_path / f"t_mean_iter={iteration}")
-                consensuses_momentum.append(self._consensus_momentum(momentum_mean))
-                consensuses_theta.append(self._consensus_theta(theta_mean))
+                utils.pdump(shape_mean, self._logger.logger_dir / f"q_mean_iter={iteration}")
+                utils.pdump(theta_mean, self._logger.logger_dir / f"t_mean_iter={iteration}")
+                #consensuses_momentum.append(self._consensus_momentum(momentum_mean))
+                #consensuses_theta.append(self._consensus_theta(theta_mean))
                 errors.append(new_error)
 
             # either we have converged or we correct
@@ -99,10 +99,10 @@ class EnsembleKalmanFilter:
             previous_error = new_error
             iteration += 1
         if self._rank == 0:
-            utils.pdump(errors, self._logger.logger_path / "errors")
-            utils.pdump(alphas, self._logger.logger_path / "alphas")
-            utils.pdump(consensuses_momentum, self._logger.logger_path / "consensuses_momentum")
-            utils.pdump(consensuses_theta, self._logger.logger_path / "consensuses_theta")
+            utils.pdump(errors, self._logger.logger_dir / "errors")
+            utils.pdump(alphas, self._logger.logger_dir / "alphas")
+            utils.pdump(consensuses_momentum, self._logger.logger_dir / "consensuses_momentum")
+            utils.pdump(consensuses_theta, self._logger.logger_dir / "consensuses_theta")
 
     def predict(self):
         # shoot using ensemble momenta
@@ -213,7 +213,7 @@ class EnsembleKalmanFilter:
             iteration += 1
 
         error_message = f"!!! alpha failed to converge in {iteration} iterations"
-        utils.pprint(error_message)
+        print(error_message)
         raise Exception(error_message)
 
     def compute_cw(self, mismatch, localise=False):
@@ -252,9 +252,19 @@ class EnsembleKalmanFilter:
                     shutil.rmtree(cache)
         self.ensemble.ensemble_comm.Barrier()
 
-    def dump_parameters(self):
-        self._logger.info(f"{self._inverse_problem_params}")
-        self.forward_operator.dump_parameters()
+    def dump_parameters(self, target=None):
+        if self._rank == 0:
+
+            self._logger.info(f"{self._inverse_problem_params}")
+            self.forward_operator.dump_parameters()
+
+            fh = open(self._logger.logger_dir / 'inverse_problem_parameters.log', 'w')
+            for key, value in asdict(self._inverse_problem_params).items():
+                fh.write(f"{key}: {value}\n")
+            fh.close()
+
+            if target is not None:
+                utils.pdump(target, self._logger.logger_dir / 'target')
 
     def _info(self, msg):
         if self._rank == 0:
