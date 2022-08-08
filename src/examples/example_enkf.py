@@ -4,25 +4,16 @@ from src.manufactured_solutions import get_solutions
 
 
 EXAMPLES_ENKF_PATH = utils.project_root() / "RESULTS_EXAMPLES_ENKF"
+EXAMPLES_ENKF_PATH.mkdir(exist_ok=True)
 
 
 if __name__ == "__main__":
-    # set up logging
-    logger = utils.Logger(EXAMPLES_ENKF_PATH / "example_enkf.log")
-
     # parameters
-    max_iterations = 50
+    max_iterations = 10
     shooting_parameters = ShootingParameters()
     process_per_ensemble_member = 1
     inverse_problem_parameters = InverseProblemParameters()
     ensemble_object = Ensemble(COMM_WORLD, M=process_per_ensemble_member)
-
-    # set up EnKF
-    enkf = EnsembleKalmanFilter(
-        ensemble_object,
-        inverse_problem_parameters,
-        logger,
-    )
 
     manufactured_solutions = get_solutions(
         momentum_names=['squeeze'],
@@ -33,6 +24,17 @@ if __name__ == "__main__":
 
     # run EKI over all manufactured solutions
     for manufactured_solution in manufactured_solutions:
+        # set up logging
+        logger = utils.Logger(
+            EXAMPLES_ENKF_PATH / manufactured_solution.name() / "example_enkf.log", ensemble_object.comm
+        )
+
+        # set up EnKF
+        enkf = EnsembleKalmanFilter(
+            ensemble_object,
+            inverse_problem_parameters,
+            logger,
+        )
 
         # build shooter based on manufactured solution
         enkf.forward_operator = GeodesicShooter(
@@ -44,7 +46,7 @@ if __name__ == "__main__":
         )
 
         # perturb momentum & parameterisation
-        momentum = enkf.forward_operator.momentum_function().interpolate(Constant(".2"))
+        momentum = enkf.forward_operator.momentum_function().interpolate(Constant(".5"))
 
         # run the EKI
         enkf.run_filter(
