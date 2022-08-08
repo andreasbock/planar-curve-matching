@@ -57,18 +57,18 @@ def plot_errors(res_dir: Path):
 
 def plot_shape_means(res_dir: Path):
     # count pickles
-    num_w_means = 0
-    prefix = "w_mean_iter="
+    num_q_means = 0
+    prefix = "q_mean_iter="
     for fn in os.listdir(res_dir):
         if fn.startswith(prefix):
-            num_w_means += 1
-    print("Number of w_mean files:", num_w_means)
+            num_q_means += 1
+    print("Number of q_mean files:", num_q_means)
 
     # load pickles
-    w_means = []
-    for i in range(num_w_means):
-        w_mean = utils.pload(res_dir / (prefix + str(i)))
-        w_means.append(w_mean)
+    q_means = []
+    for i in range(num_q_means):
+        q_mean = utils.pload(res_dir / (prefix + str(i)))
+        q_means.append(q_mean)
 
     # plot pickles
     print("Plotting means...")
@@ -76,15 +76,15 @@ def plot_shape_means(res_dir: Path):
     plt.xlabel('$x$-coordinate')
     plt.ylabel('$y$-coordinate')
     j = 0
-    while j < num_w_means:
-        shape = np.append(w_means[j], [w_means[j][0, :]], axis=0)
+    while j < num_q_means:
+        shape = np.append(q_means[j], [q_means[j][0, :]], axis=0)
         plt.plot(shape[:, 0], shape[:, 1])
         j += print_freq
 
     target = utils.pload(res_dir / "target")
     target = np.append(target, [target[0,:]], axis=0)
     plt.plot(target[:,0], target[:,1], 'd:')
-    plt.savefig(res_dir / 'w_means.pdf')
+    plt.savefig(res_dir / 'q_means.pdf')
     plt.clf()
 
 
