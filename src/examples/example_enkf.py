@@ -13,8 +13,9 @@ if __name__ == "__main__":
     # parameters
     max_iterations = 50
     shooting_parameters = ShootingParameters()
+    process_per_ensemble_member = 1
     inverse_problem_parameters = InverseProblemParameters()
-    ensemble_object = Ensemble(COMM_WORLD, M=1)
+    ensemble_object = Ensemble(COMM_WORLD, M=process_per_ensemble_member)
 
     # set up EnKF
     enkf = EnsembleKalmanFilter(
@@ -23,8 +24,15 @@ if __name__ == "__main__":
         logger,
     )
 
+    manufactured_solutions = get_solutions(
+        momentum_names=['squeeze'],
+        shape_names=['circle'],
+        resolutions=[0.5],
+        landmarks=[10],
+    )
+
     # run EKI over all manufactured solutions
-    for manufactured_solution in get_solutions():
+    for manufactured_solution in manufactured_solutions:
 
         # build shooter based on manufactured solution
         enkf.forward_operator = GeodesicShooter(
@@ -32,11 +40,15 @@ if __name__ == "__main__":
             mesh_path=manufactured_solution.mesh_path,
             template=manufactured_solution.template,
             shooting_parameters=shooting_parameters,
+            communicator=ensemble_object.comm,
         )
+
+        # perturb momentum & parameterisation
+        momentum = enkf.forward_operator.momentum_function().interpolate(Constant(".2"))
 
         # run the EKI
         enkf.run_filter(
-            momentum=manufactured_solution.momentum,
+            momentum=momentum,
             parameterisation=manufactured_solution.parameterisation,
             target=manufactured_solution.target,
             max_iterations=max_iterations,

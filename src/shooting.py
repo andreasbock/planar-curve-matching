@@ -52,9 +52,10 @@ class GeodesicShooter:
         mesh_path: Path,
         template: Curve = None,
         shooting_parameters: ShootingParameters = None,
+        communicator=None,
     ):
         self.mesh_path = mesh_path
-        self.mesh = Mesh(str(self.mesh_path))
+        self.mesh = Mesh(str(self.mesh_path), comm=communicator)
         self._logger = logger
         self.parameters = shooting_parameters or ShootingParameters()
         self._solver_parameters = self.parameters.velocity_solver_parameters
@@ -71,7 +72,7 @@ class GeodesicShooter:
         # Velocity, momentum and diffeo
         self.diffeo = project(SpatialCoordinate(self.mesh), self.XW)
         self.u = Function(self.XW)
-        self.p = None
+        self.momentum = None
 
         # Functions we'll need for the source term/visualisation
         self.shape_function = utils.shape_function(self.mesh, CURVE_TAG)
@@ -81,8 +82,13 @@ class GeodesicShooter:
 
     def shoot(self, momentum: Momentum) -> CurveResult:
         dt = Constant(1 / self.parameters.time_steps)
-        x, y = SpatialCoordinate(self.mesh)
-        self.p = momentum.signal(x, y) * self.shape_normal
+        if isinstance(momentum, Function):
+            self.momentum = momentum
+        else:
+            # mostly for manufactured solutions
+            x, y = SpatialCoordinate(self.mesh)
+            self.momentum = momentum.signal(x, y)
+
         u_norms, p_norms = [], []
 
         self._logger.info("Shooting...")
@@ -105,7 +111,7 @@ class GeodesicShooter:
         v, dv = TrialFunction(self.XW), TestFunction(self.XW)
         w, z = Function(self.XW), Function(self.XW)
 
-        momentum = dot(transpose(inv(grad(self.diffeo))), self.p)
+        momentum = dot(transpose(inv(grad(self.diffeo))), self.momentum * self.shape_normal)
         momentum_form = Constant(2*pi) * self.h_inv * momentum
         rhs = dot(momentum_form, dv)('+') * dS(CURVE_TAG)
 
@@ -130,7 +136,11 @@ class GeodesicShooter:
         template_points = self.template.at(angles)
 
         # compose with diffeomorphism
-        return self.diffeo.at(template_points)
+
+        # TODO: replace with Xu-Wu point evaluation!
+        #return self.diffeo.at(template_points)
+        cg_diffeo = Function(self.VCG).project(self.diffeo)
+        return np.array(cg_diffeo.at(template_points))
 
     def momentum_function(self):
         """ Used in the inverse problem solver. """

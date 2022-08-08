@@ -107,7 +107,7 @@ class EnsembleKalmanFilter:
     def predict(self):
         # shoot using ensemble momenta
         _ = self.forward_operator.shoot(self.momentum)
-        self.forward_operator.evaluate_curve(self.parameterisation)
+        self.shape = self.forward_operator.evaluate_curve(self.parameterisation)
 
         shape_mean = self._compute_shape_mean()
         momentum_mean = self._compute_momentum_mean()

@@ -1,7 +1,8 @@
 import itertools
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List
+from typing import List, Union, Any
+
 from firedrake import *
 import numpy as np
 
@@ -24,12 +25,13 @@ MANUFACTURED_SOLUTIONS_PARAMS: List[Parameterisation] = [
     utils.uniform_parameterisation(n) for n in [10, 20, 50]
 ]
 MESH_RESOLUTIONS = [1 / (2 * h) for h in range(1, 2)]
+MomentumFunction = Any #Union[function, Function]
 
 
 @dataclass(frozen=True)
 class Momentum:
     name: str
-    signal: function
+    signal: MomentumFunction
 
 
 @dataclass(frozen=True)
