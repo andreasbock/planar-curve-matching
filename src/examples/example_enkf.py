@@ -46,7 +46,9 @@ if __name__ == "__main__":
         )
 
         # perturb momentum & parameterisation
-        momentum = enkf.forward_operator.momentum_function().interpolate(Constant(".5"))
+        pcg = randomfunctiongen.PCG64(seed=123456789)
+        rg = randomfunctiongen.Generator(pcg)
+        momentum = rg.normal(enkf.forward_operator.DGT, 0.0, 0.2)
 
         # run the EKI
         enkf.run_filter(
