@@ -1,3 +1,5 @@
+import numpy as np
+
 from firedrake import File
 
 from src import utils
@@ -11,7 +13,7 @@ from src.shooting import ShootingParameters, GeodesicShooter
 
 
 if __name__ == "__main__":
-    logger = utils.Logger(MANUFACTURED_SOLUTIONS_PATH / "manufactured_solutions.log")
+    logger = utils.Logger(MANUFACTURED_SOLUTIONS_PATH / "manufactured_solutions.log", )
 
     shooting_parameters = ShootingParameters()
 
@@ -26,7 +28,7 @@ if __name__ == "__main__":
                 # shooting
                 logger.info(f"Shooting with `{momentum.name}`.")
                 shooter = GeodesicShooter(logger, mesh_path, template, shooting_parameters)
-                curve_result = shooter.shoot(momentum.signal)
+                curve_result = shooter.shoot(momentum)
                 template_and_momentum_name = f"{mesh_path.stem}_{momentum.name}"
                 path = mesh_path.parent / template_and_momentum_name
                 if not path.exists():
@@ -35,12 +37,10 @@ if __name__ == "__main__":
                 # logging
                 logger.info(f"Logging to `{path}`.")
                 utils.plot_norms(curve_result.velocity_norms, curve_result.momentum_norms, shooting_parameters.time_steps, path)
-                File(path / f"{mesh_path.stem}_{momentum.name}.pvd").write(shooter.shape_function)
                 for parameterisation in MANUFACTURED_SOLUTIONS_PARAMS:
                     try:
-                        # TODO: add Xu-Wu point evaluation
-                        target = utils.soft_eval(curve_result.diffeo, shooter.VCG, template.at(parameterisation))
-                        utils.check_points(mesh_params.min_xy, mesh_params.max_xy, target)
+                        target = np.array(curve_result.diffeo.at(template.at(parameterisation)))
+                        #utils.check_points(mesh_params.min_xy, mesh_params.max_xy, target)
                     except Exception as e:
                         print(e)
                         continue
@@ -53,3 +53,7 @@ if __name__ == "__main__":
                         momentum=momentum,
                         parameterisation=parameterisation,
                     ).dump(path)
+
+                    # move mesh via linear projection and dump pvd files
+                    shooter.update_mesh()
+                    File(path / f"{mesh_path.stem}_{momentum.name}.pvd").write(shooter.shape_function)

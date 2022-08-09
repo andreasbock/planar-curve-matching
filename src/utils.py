@@ -30,7 +30,7 @@ def create_dir_from_path_if_not_exists(path):
 
 class Logger:
 
-    def __init__(self, logger_path: Path, communicator):
+    def __init__(self, logger_path: Path, communicator=None):
         self.log_path = logger_path
         self.logger_dir = self.log_path.parent
         self.logger_dir.mkdir(exist_ok=True)
@@ -38,19 +38,31 @@ class Logger:
         self._communicator = communicator
 
     def info(self, msg):
-        if self._communicator.Get_rank() == 0:
+        if self._communicator is not None:
+            if self._communicator.Get_rank() == 0:
+                self._logger.info(msg)
+        else:
             self._logger.info(msg)
 
     def debug(self, msg):
-        if self._communicator.Get_rank() == 0:
+        if self._communicator is not None:
+            if self._communicator.Get_rank() == 0:
+                self._logger.debug(msg)
+        else:
             self._logger.debug(msg)
 
     def critical(self, msg):
-        if self._communicator.Get_rank() == 0:
+        if self._communicator is not None:
+            if self._communicator.Get_rank() == 0:
+                self._logger.critical(msg)
+        else:
             self._logger.critical(msg)
 
     def log(self, msg, level):
-        if self._communicator.Get_rank() == 0:
+        if self._communicator is not None:
+            if self._communicator.Get_rank() == 0:
+                self._logger.log(msg, level)
+        else:
             self._logger.log(msg, level)
 
 

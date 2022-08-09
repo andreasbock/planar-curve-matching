@@ -21,8 +21,8 @@ _OUTER_TAG = 7
 @dataclass
 class MeshGenerationParameters:
     mesh_size: float
-    min_xy: int = -10
-    max_xy: int = 10
+    min_xy: float = -10.
+    max_xy: float = 10.
 
 
 def write_geo_file(

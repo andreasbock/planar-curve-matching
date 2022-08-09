@@ -101,9 +101,9 @@ class GeodesicShooter:
             p_norms.append(p_norm)
 
         # move the mesh for visualisation
-        self._update_mesh()
+        soft_diffeo = project(self.diffeo, self.VCG)  # TODO: Xu-Wu evaluation!
         return CurveResult(
-            diffeo=self.diffeo,
+            diffeo=soft_diffeo,
             velocity_norms=u_norms,
             momentum_norms=p_norms,
         )
@@ -150,8 +150,9 @@ class GeodesicShooter:
     def dump_parameters(self):
         self._logger.info(f"{self.parameters}")
 
-    def _update_mesh(self):
-        self.mesh.coordinates.assign(project(self.diffeo, self.VCG))
+    def update_mesh(self):
+        soft_diffeo = project(self.diffeo, self.VCG)
+        self.mesh.coordinates.assign(soft_diffeo)
         self.mesh.clear_spatial_index()
 
 
