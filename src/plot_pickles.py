@@ -82,8 +82,9 @@ def plot_shape_means(res_dir: Path):
         j += print_freq
 
     target = utils.pload(res_dir / "target")
-    target = np.append(target, [target[0,:]], axis=0)
-    plt.plot(target[:,0], target[:,1], 'd:')
+    target = np.append(target, [target[0, :]], axis=0)
+    plt.plot(target[:, 0], target[:, 1], 'd:', label='Target')
+    plt.legend(loc='best')
     plt.savefig(res_dir / 'q_means.pdf')
     plt.clf()
 
