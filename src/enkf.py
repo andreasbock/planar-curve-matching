@@ -1,7 +1,8 @@
 from dataclasses import dataclass, asdict
 import shutil
 import scipy
-import numpy as np
+
+import numpy as np  # for pickle, don't remove!
 
 from firedrake import *
 from pyop2.mpi import MPI
@@ -60,6 +61,7 @@ class EnsembleKalmanFilter:
         self.momentum = momentum
         self.parameterisation = parameterisation
 
+        target = np.array(target)
         self.gamma = self._inverse_problem_params.gamma_scale * np.eye(product(target.shape), dtype='float')
         self.sqrt_gamma = scipy.linalg.sqrtm(self.gamma)
         self.sqrt_gamma_inv = np.linalg.inv(self.sqrt_gamma)
@@ -130,7 +132,7 @@ class EnsembleKalmanFilter:
         return self._inverse_problem_params.optimise_parameterisation
 
     def _correct_momentum(self, momentum_mean, mismatch, shape_update):
-        self._logger.info('Updating momentum')
+        self._info('Updating momentum')
         firedrake_mismatch_no_localisation = [Constant(w) for w in np.ndarray.flatten(mismatch)]
         #if self.localise_momentum:
         #    for i, w in enumerate(w_flat_noloc):
@@ -150,7 +152,7 @@ class EnsembleKalmanFilter:
         self.momentum.assign(self.momentum + gain * Constant(1 / (self.ensemble_size - 1)))
 
     def _correct_theta(self, theta_mean, mismatch, shape_update):
-        self._logger.info('Updating parameterisation')
+        self._info('Updating parameterisation')
 
         cov_theta = np.outer(self.parameterisation - theta_mean, mismatch)
         cov_theta_all = np.zeros(shape=cov_theta.shape)
@@ -227,10 +229,10 @@ class EnsembleKalmanFilter:
 
     def has_converged(self, n_err, err):
         if n_err <= self._inverse_problem_params.tau*self._inverse_problem_params.eta:
-            utils.pprint("Converged, error at noise level.")
+            self._info("Converged, error at noise level.")
             return True
         elif np.fabs(n_err - err) < self._inverse_problem_params.relative_tolerance:
-            utils.pprint("No improvement in residual, terminating filter.")
+            self._info("No improvement in residual, terminating filter.")
             return True
 
     def error_norm(self, mismatch):
@@ -255,7 +257,7 @@ class EnsembleKalmanFilter:
     def dump_parameters(self, target=None):
         if self._rank == 0:
 
-            self._logger.info(f"{self._inverse_problem_params}")
+            self._info(f"{self._inverse_problem_params}")
             self.forward_operator.dump_parameters()
 
             fh = open(self._logger.logger_dir / 'inverse_problem_parameters.log', 'w')
