@@ -92,7 +92,6 @@ class GeodesicShooter:
 
         u_norms, p_norms = [], []
 
-        self._logger.info("Shooting...")
         for t in range(self.parameters.time_steps):
             u_norm, p_norm = self.velocity_solve()
             self.diffeo.assign(self.diffeo + self.u * dt)
