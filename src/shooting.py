@@ -38,8 +38,8 @@ class ShootingParameters:
 @dataclass
 class CurveResult:
     diffeo: firedrake.Function
-    velocity_norms: List[Any]
-    momentum_norms: List[Any]
+    velocity_norms: List[Any] = None
+    momentum_norms: List[Any] = None
 
     def eval_diffeo(self, points):
         return self.diffeo.at(points)
