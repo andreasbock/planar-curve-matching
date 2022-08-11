@@ -182,12 +182,9 @@ def plot_alphas(res_dir: Path):
 if __name__ == "__main__":
     res_dir = Path(sys.argv[1])
     num_files = len(next(os.walk(res_dir))[2])
-    if len(sys.argv) >= 3:
-        print_freq = int(sys.argv[2])
-    else:
-        print_freq = 1
 
     plot_consensus(res_dir)
     plot_errors(res_dir)
     plot_shape_means(res_dir)
     plot_t_means(res_dir)
+    plot_mismatch(res_dir)
