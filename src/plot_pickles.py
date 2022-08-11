@@ -10,6 +10,8 @@ from pathlib import Path
 plt.rc('text', usetex=True)
 plt.rc('font', family='serif')
 
+print_freq = 1
+
 
 def plot_consensus(res_dir: Path):
     vnames = {'momentum': r'$\sum_{i=1}^{N_e}\frac{1}{N_e}\|\bar{p}-p_0^i\|_{L^2}$',
@@ -86,6 +88,40 @@ def plot_shape_means(res_dir: Path):
     plt.plot(target[:, 0], target[:, 1], 'd:', label='Target')
     plt.legend(loc='best')
     plt.savefig(res_dir / 'q_means.pdf')
+    plt.clf()
+
+
+def plot_mismatch(res_dir: Path):
+    # count pickles
+    num_q_means = 0
+    prefix = "mismatch_iter="
+    for fn in os.listdir(res_dir):
+        if fn.startswith(prefix):
+            num_q_means += 1
+    print("Number of mismatch files:", num_q_means)
+
+    # load pickles
+    q_means = []
+    for i in range(num_q_means):
+        q_mean = utils.pload(res_dir / (prefix + str(i)))
+        q_means.append(q_mean)
+
+    # plot pickles
+    print("Plotting means...")
+    plt.grid()
+    plt.xlabel('$x$-coordinate')
+    plt.ylabel('$y$-coordinate')
+    j = 0
+    while j < num_q_means:
+        shape = np.append(q_means[j], [q_means[j][0, :]], axis=0)
+        plt.plot(shape[:, 0], shape[:, 1])
+        j += print_freq
+
+    target = utils.pload(res_dir / "target")
+    target = np.append(target, [target[0, :]], axis=0)
+    plt.plot(target[:, 0], target[:, 1], 'd:', label='Target')
+    plt.legend(loc='best')
+    plt.savefig(res_dir / 'mismatch.pdf')
     plt.clf()
 
 
