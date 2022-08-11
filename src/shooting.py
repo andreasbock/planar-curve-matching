@@ -128,20 +128,6 @@ class GeodesicShooter:
         u_norm = np.sqrt(assemble(h1_form(self.u, self.u, inv_jacobian, det_jacobian, alpha=self.parameters.alpha)[0]))
         return u_norm, momentum_norm
 
-    def evaluate_curve(self, angles):
-        if self.template is None:
-            raise Exception("No template.pickle `Curve` object was provided.")
-
-        # map angles to template.pickle
-        template_points = self.template.at(angles)
-
-        # compose with diffeomorphism
-
-        # TODO: replace with Xu-Wu point evaluation!
-        #return self.diffeo.at(template_points)
-        cg_diffeo = Function(self.VCG).project(self.diffeo)
-        return np.array(cg_diffeo.at(template_points))
-
     def momentum_function(self):
         """ Used in the inverse problem solver. """
         return Function(self.DGT)
