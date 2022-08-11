@@ -30,7 +30,7 @@ class ShootingParameters:
             'pc_type': 'lu'
         }
     )
-    momentum_degree: int = 1
+    momentum_degree: int = 0
     alpha: float = 1
     time_steps: int = 10
 
@@ -65,7 +65,7 @@ class GeodesicShooter:
         # Function spaces
         self.XW = VectorFunctionSpace(self.mesh, "WXRobH3NC", degree=7, dim=2)
         self.DG = FunctionSpace(self.mesh, "DG", 0)
-        self.VDGT = VectorFunctionSpace(self.mesh, "DGT", degree=self.parameters.momentum_degree, dim=2)  # for momentum
+        VDGT = VectorFunctionSpace(self.mesh, "DGT", degree=self.parameters.momentum_degree, dim=2)  # for momentum
         self.VCG = VectorFunctionSpace(self.mesh, "CG", degree=1, dim=2)  # for coordinate fields
         self.DGT = FunctionSpace(self.mesh, "DGT", self.parameters.momentum_degree)  # for momentum signal
         self.velocity_bcs = AxisAlignedDirichletBC(self.XW, Function(self.XW), "on_boundary")
@@ -79,7 +79,7 @@ class GeodesicShooter:
         self.shape_function = utils.shape_function(self.mesh, CURVE_TAG)
         self.h_inv = inv(utils.compute_facet_area(self.mesh))
         self.n = assemble(self.h_inv('+') * dS(CURVE_TAG))  # reference interval has measure 1
-        self.shape_normal = utils.shape_normal(self.mesh, self.VDGT)
+        self.shape_normal = utils.shape_normal(self.mesh, VDGT)
 
     def shoot(self, momentum: Momentum) -> CurveResult:
         dt = Constant(1 / self.parameters.time_steps)
@@ -90,21 +90,14 @@ class GeodesicShooter:
             x, y = SpatialCoordinate(self.mesh)
             self.momentum = momentum.signal(x, y)
 
-        u_norms, p_norms = [], []
-
         for t in range(self.parameters.time_steps):
-            u_norm, p_norm = self.velocity_solve()
+            self.velocity_solve()
             self.diffeo.assign(self.diffeo + self.u * dt)
-
-            u_norms.append(u_norm)
-            p_norms.append(p_norm)
 
         # move the mesh for visualisation
         soft_diffeo = project(self.diffeo, self.VCG)  # TODO: Xu-Wu evaluation!
         return CurveResult(
             diffeo=soft_diffeo,
-            velocity_norms=u_norms,
-            momentum_norms=p_norms,
         )
 
     def velocity_solve(self):
@@ -123,10 +116,6 @@ class GeodesicShooter:
         solve(a == rhs, z, bcs=self.velocity_bcs, solver_parameters=self._solver_parameters)
         solve(a == l(z), w, bcs=self.velocity_bcs, solver_parameters=self._solver_parameters)
         solve(a == l(w), self.u, bcs=self.velocity_bcs, solver_parameters=self._solver_parameters)
-
-        momentum_norm = np.sqrt(assemble(inner(momentum_form, momentum)('+') * dS(CURVE_TAG)))
-        u_norm = np.sqrt(assemble(h1_form(self.u, self.u, inv_jacobian, det_jacobian, alpha=self.parameters.alpha)[0]))
-        return u_norm, momentum_norm
 
     def momentum_function(self):
         """ Used in the inverse problem solver. """
