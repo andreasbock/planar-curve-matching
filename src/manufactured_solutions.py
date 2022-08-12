@@ -5,6 +5,7 @@ from typing import List, Any
 
 from firedrake import *
 import numpy as np
+from matplotlib import pyplot as plt
 
 from src.curves import Curve, CURVE_NAMES
 import src.utils as utils
@@ -61,6 +62,12 @@ class ManufacturedSolution:
         utils.pdump(self.mesh_path, path / self._mesh_name)
         utils.pdump(self.momentum, path / self._momentum_name)
         utils.pdump(self.parameterisation, path / self._parameterisation_name)
+
+        target = np.append(self.target, [self.target[0, :]], axis=0)
+        plt.plot(target[:, 0], target[:, 1], 'd:', label='Target')
+        plt.legend(loc='best')
+        plt.savefig(path / 'target.pdf')
+
         print(f"Wrote solution to {path}.")
 
     @classmethod
