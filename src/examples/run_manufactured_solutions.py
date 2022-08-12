@@ -36,7 +36,7 @@ if __name__ == "__main__":
 
                 # logging
                 logger.info(f"Logging to `{path}`.")
-                utils.plot_norms(curve_result.velocity_norms, curve_result.momentum_norms, shooting_parameters.time_steps, path)
+
                 for parameterisation in MANUFACTURED_SOLUTIONS_PARAMS:
                     try:
                         target = np.array(curve_result.diffeo.at(template.at(parameterisation)))
