@@ -64,9 +64,11 @@ class ManufacturedSolution:
         utils.pdump(self.parameterisation, path / self._parameterisation_name)
 
         target = np.append(self.target, [self.target[0, :]], axis=0)
+        plt.figure()
         plt.plot(target[:, 0], target[:, 1], 'd:', label='Target')
         plt.legend(loc='best')
         plt.savefig(path / 'target.pdf')
+        plt.close()
 
         print(f"Wrote solution to {path}.")
 
