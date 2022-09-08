@@ -70,8 +70,6 @@ class ManufacturedSolution:
         plt.savefig(path / 'target.pdf')
         plt.close()
 
-        print(f"Wrote solution to {path}.")
-
     @classmethod
     def load(cls, base_path: Path) -> "ManufacturedSolution":
         print(f"Loading solution from {base_path}.")

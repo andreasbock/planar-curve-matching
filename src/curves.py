@@ -1,4 +1,5 @@
 from typing import List
+from firedrake import PeriodicIntervalMesh, VectorFunctionSpace, Function
 
 import numpy as np
 from numpy.linalg import norm as dist
@@ -12,24 +13,12 @@ class Curve:
         self.name = name
         self.points = points
         self.n = len(points)
-        dists = [dist(self.points[i] - self.points[(i + 1) % self.n]) for i in range(self.n)]
-        self._plist = 2*np.pi*np.cumsum(dists / np.sum(dists))
+        periodic_mesh = PeriodicIntervalMesh(self.n, 2*np.pi)
+        V = VectorFunctionSpace(periodic_mesh, "CG", 1, dim=2)
+        self.point_function = Function(V, val=points)
 
     def at(self, param: np.array) -> np.array:
-        return list(map(self._at, param))
-
-    def _at(self, angle: float):
-        if angle < 0 or 2*np.pi < angle:
-            raise Exception(f"Angle {angle} not in [0, 2π].")
-        e_prev = 0
-        for i, e in enumerate(self._plist):
-            if angle < e:
-                break
-            e_prev = e
-        w = (angle - e_prev) / e
-        start = self.points[(i - 1) % self.n]
-        stop = self.points[i % self.n]
-        return w * start + (1 - w) * stop
+        return self.point_function.at(param)
 
 
 CURVES: List[Curve] = [

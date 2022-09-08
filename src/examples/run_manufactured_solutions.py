@@ -31,29 +31,24 @@ if __name__ == "__main__":
                 curve_result = shooter.shoot(momentum)
                 template_and_momentum_name = f"{mesh_path.stem}_{momentum.name}"
                 path = mesh_path.parent / template_and_momentum_name
-                if not path.exists():
-                    path.mkdir()
-
+                path.mkdir(exist_ok=True)
                 # logging
                 logger.info(f"Logging to `{path}`.")
 
                 for parameterisation in MANUFACTURED_SOLUTIONS_PARAMS:
-                    try:
-                        target = np.array(curve_result.diffeo.at(template.at(parameterisation)))
-                        #utils.check_points(mesh_params.min_xy, mesh_params.max_xy, target)
-                    except Exception as e:
-                        print(e)
-                        continue
+                    template_points = template.at(parameterisation)
+                    target = np.array(curve_result.diffeo.at(template_points))
 
                     # dump the solution
                     ManufacturedSolution(
-                        template=template,
+                        template=template_points,
                         target=target,
                         mesh_path=mesh_path,
                         momentum=momentum,
                         parameterisation=parameterisation,
                     ).dump(path)
+                    logger.info(f"Wrote solution to {path}.")
 
                     # move mesh via linear projection and dump pvd files
-                    shooter.update_mesh()
-                    File(path / f"{mesh_path.stem}_{momentum.name}.pvd").write(shooter.shape_function)
+                shooter.update_mesh()
+                File(path / f"{mesh_path.stem}_{momentum.name}.pvd").write(shooter.shape_function)

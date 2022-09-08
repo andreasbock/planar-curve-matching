@@ -41,9 +41,6 @@ class CurveResult:
     velocity_norms: List[Any] = None
     momentum_norms: List[Any] = None
 
-    def eval_diffeo(self, points):
-        return self.diffeo.at(points)
-
 
 class GeodesicShooter:
     def __init__(
@@ -95,7 +92,7 @@ class GeodesicShooter:
             self.diffeo.assign(self.diffeo + self.u * dt)
 
         # move the mesh for visualisation
-        soft_diffeo = project(self.diffeo, self.VCG)  # TODO: Xu-Wu evaluation!
+        soft_diffeo = project(self.diffeo, self.XW_approx)  # TODO: Xu-Wu evaluation!
         return CurveResult(
             diffeo=soft_diffeo,
         )
@@ -125,7 +122,7 @@ class GeodesicShooter:
         self._logger.info(f"{self.parameters}")
 
     def update_mesh(self):
-        soft_diffeo = project(self.diffeo, self.VCG)
+        soft_diffeo = project(self.diffeo, self.VCG1)
         self.mesh.coordinates.assign(soft_diffeo)
         self.mesh.clear_spatial_index()
 
