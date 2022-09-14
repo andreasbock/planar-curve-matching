@@ -7,7 +7,7 @@ from firedrake import *
 import numpy as np
 from matplotlib import pyplot as plt
 
-from src.curves import Curve, CURVE_NAMES
+from src.curves import Curve, CURVES
 import src.utils as utils
 
 
@@ -26,7 +26,7 @@ MANUFACTURED_SOLUTIONS_PARAMS: List[Parameterisation] = [
     utils.uniform_parameterisation(n) for n in [10, 20, 50]
 ]
 MESH_RESOLUTIONS = [1 / (2 * h) for h in range(1, 2)]
-MomentumFunction = Any #Union[function, Function]
+MomentumFunction = Any
 
 
 @dataclass(frozen=True)
@@ -43,7 +43,8 @@ class ManufacturedSolution:
     momentum: Momentum
     parameterisation: Parameterisation
 
-    _template_name: str = "template"
+    _template_file_name: str = "template_coefs"
+    _curve_name: str = "curve_name"
     _target_name: str = "target"
     _mesh_name: str = "mesh_path"
     _momentum_name: str = "momentum"
@@ -57,24 +58,24 @@ class ManufacturedSolution:
         if not path.parent.exists():
             path.parent.mkdir()
 
-        utils.pdump(self.template, path / self._template_name)
+        utils.pdump(self.template.points, path / self._template_file_name)
+        utils.pdump(self.template.name, path / self._curve_name)
         utils.pdump(self.target, path / self._target_name)
         utils.pdump(self.mesh_path, path / self._mesh_name)
         utils.pdump(self.momentum, path / self._momentum_name)
         utils.pdump(self.parameterisation, path / self._parameterisation_name)
+        utils.plot_landmarks(self.target, 'Target', path / 'target.pdf')
 
-        target = np.append(self.target, [self.target[0, :]], axis=0)
-        plt.figure()
-        plt.plot(target[:, 0], target[:, 1], 'd:', label='Target')
-        plt.legend(loc='best')
-        plt.savefig(path / 'target.pdf')
-        plt.close()
 
     @classmethod
-    def load(cls, base_path: Path) -> "ManufacturedSolution":
+    def load(cls, base_path: Path, communicator=COMM_WORLD) -> "ManufacturedSolution":
         print(f"Loading solution from {base_path}.")
         return ManufacturedSolution(
-            template=utils.pload(base_path / cls._template_name),
+            template=Curve(
+                name=utils.pload(base_path / cls._curve_name),
+                points=utils.pload(base_path / cls._template_file_name),
+                communicator=communicator,
+            ),
             target=utils.pload(base_path / cls._target_name),
             mesh_path=utils.pload(base_path / cls._mesh_name),
             momentum=utils.pload(base_path / cls._momentum_name),
@@ -87,10 +88,11 @@ def get_solutions(
     shape_names: List[str] = None,
     resolutions: List[float] = None,
     landmarks: List[int] = None,
+    communicator=COMM_WORLD,
 ) -> List[ManufacturedSolution]:
 
     momenta = momentum_names if momentum_names is not None else MANUFACTURED_SOLUTIONS_MOMENTUM_NAMES
-    shapes = shape_names if shape_names is not None else CURVE_NAMES
+    shapes = shape_names if shape_names is not None else [c(communicator).name for c in CURVES]
     resolutions = resolutions if resolutions is not None else MESH_RESOLUTIONS
     landmarks = landmarks if landmarks is not None else MANUFACTURED_SOLUTIONS_PARAMS
 
@@ -98,7 +100,7 @@ def get_solutions(
     for momentum, shape, res, lms in itertools.product(momenta, shapes, resolutions, landmarks):
         name = f"{shape}_{momentum}"
         solution_path = MANUFACTURED_SOLUTIONS_PATH / f"h={res}" / name / f"{name}_LANDMARKS={lms}"
-        solutions.append(ManufacturedSolution.load(solution_path))
+        solutions.append(ManufacturedSolution.load(solution_path, communicator))
     return solutions
 
 
@@ -107,10 +109,11 @@ def get_solution(
     shape_name: str,
     resolution: float,
     landmarks: int,
+    communicator=None,
 ) -> ManufacturedSolution:
     name = f"{shape_name}_{momentum_name}"
     solution_path = MANUFACTURED_SOLUTIONS_PATH / f"h={resolution}" / name / f"{name}_LANDMARKS={landmarks}"
-    return ManufacturedSolution.load(solution_path)
+    return ManufacturedSolution.load(solution_path, communicator)
 
 
 def _expand(x, y):

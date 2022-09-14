@@ -11,6 +11,7 @@ if __name__ == "__main__":
     # parameters
     max_iterations = 10
     shooting_parameters = ShootingParameters()
+    shooting_parameters.velocity_solver_parameters = {'ksp_type': 'cg'}
     process_per_ensemble_member = 1
     inverse_problem_parameters = InverseProblemParameters()
     ensemble_object = Ensemble(COMM_WORLD, M=process_per_ensemble_member)
@@ -19,7 +20,7 @@ if __name__ == "__main__":
         momentum_names=['squeeze'],
         shape_names=['circle'],
         resolutions=[0.5],
-        landmarks=[10],
+        landmarks=[20],
     )
 
     # run EKI over all manufactured solutions
@@ -34,22 +35,23 @@ if __name__ == "__main__":
             ensemble_object,
             inverse_problem_parameters,
             logger,
-        )
-
-        # build shooter based on manufactured solution
-        enkf.forward_operator = GeodesicShooter(
-            logger=logger,
-            mesh_path=manufactured_solution.mesh_path,
-            template=manufactured_solution.template,
-            shooting_parameters=shooting_parameters,
-            communicator=ensemble_object.comm,
+            GeodesicShooter(
+                logger=logger,
+                mesh_path=manufactured_solution.mesh_path,
+                template=manufactured_solution.template,
+                shooting_parameters=shooting_parameters,
+                communicator=ensemble_object.comm,
+            )
         )
 
         # perturb momentum & parameterisation
-        pcg = randomfunctiongen.PCG64(seed=123456789)
+        pcg = randomfunctiongen.PCG64(seed=4113)
         rg = randomfunctiongen.Generator(pcg)
-        momentum = rg.normal(enkf.forward_operator.DGT, 0.0, 0.2)
-
+        random_part = rg.uniform(enkf.forward_operator.DGT, -4, 4)
+        momentum = manufactured_solution.momentum
+        x, y = SpatialCoordinate(enkf.forward_operator.mesh)
+        momentum = enkf.forward_operator.momentum_function().interpolate(Constant(momentum.signal(x, y)))
+        momentum.assign(random_part)
         # run the EKI
         enkf.run_filter(
             momentum=momentum,
@@ -57,5 +59,3 @@ if __name__ == "__main__":
             target=manufactured_solution.target,
             max_iterations=max_iterations,
         )
-
-

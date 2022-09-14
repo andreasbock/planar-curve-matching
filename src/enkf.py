@@ -5,6 +5,7 @@ import scipy
 import numpy as np  # for pickle, don't remove!
 
 from firedrake import *
+from matplotlib import pyplot as plt
 from pyop2.mpi import MPI
 
 import src.utils as utils
@@ -22,7 +23,7 @@ class InverseProblemParameters:
     gamma_scale: float = 1  # observation variance
     eta: float = 1e-03  # noise limit, equals ||\Lambda^{0.5}(q1-G(.))||
     relative_tolerance: float = 1e-05  # relative error to previous iteration
-    sample_covariance_regularisation: float = 1  # alpha_0 regularisation parameter
+    sample_covariance_regularisation: float = .1  # alpha_0 regularisation parameter
     max_iter_regularisation: int = 40
     optimise_momentum: bool = True
     optimise_parameterisation: bool = True
@@ -62,6 +63,7 @@ class EnsembleKalmanFilter:
         self.parameterisation = parameterisation
 
         target = np.array(target)
+        _target_periodic = np.append(target, [target[0, :]], axis=0)
         self.gamma = self._inverse_problem_params.gamma_scale * np.eye(product(target.shape), dtype='float')
         self.sqrt_gamma = scipy.linalg.sqrtm(self.gamma)
         self.sqrt_gamma_inv = np.linalg.inv(self.sqrt_gamma)
@@ -83,6 +85,15 @@ class EnsembleKalmanFilter:
             if self._rank == 0:
                 utils.pdump(shape_mean, self._logger.logger_dir / f"q_mean_iter={iteration}")
                 utils.pdump(theta_mean, self._logger.logger_dir / f"t_mean_iter={iteration}")
+
+                plt.figure()
+                lms = np.append(self.shape, [self.shape[0, :]], axis=0)
+                plt.plot(lms[:, 0], lms[:, 1], 'd:', label='Shape')
+                plt.plot(_target_periodic[:, 0], _target_periodic[:, 1], 'b-', label='Target')
+                plt.savefig(str(self._logger.logger_dir / f"shape_iter={iteration}.pdf"))
+                plt.legend(loc='best')
+                plt.close()
+
                 #consensuses_momentum.append(self._consensus_momentum(momentum_mean))
                 #consensuses_theta.append(self._consensus_theta(theta_mean))
                 errors.append(new_error)
@@ -93,9 +104,7 @@ class EnsembleKalmanFilter:
             else:
                 centered_shape = np.ndarray.flatten(self.shape - shape_mean)
                 mismatch_local = np.ndarray.flatten(target - self.shape)
-
                 cw_alpha_gamma_inv, alpha = self.compute_cw_operator(centered_shape, mismatch, localise=False)
-
                 shape_update = np.dot(cw_alpha_gamma_inv, mismatch_local)
                 if self._inverse_problem_params.optimise_momentum:
                     self._info(f"Iteration {iteration}: correcting momentum...")
@@ -164,7 +173,7 @@ class EnsembleKalmanFilter:
             lhs = alpha * self.error_norm(np.dot(cw_alpha_gamma_inv, mismatch))
             self._info(f"\t lhs = {lhs}")
 
-            if lhs >= rhs:
+            if True or lhs >= rhs:
                 self._info(f"\t alpha = {alpha}")
                 return cw_alpha_gamma_inv, alpha
             alpha *= 2

@@ -32,7 +32,7 @@ class Logger:
 
     def __init__(self, logger_path: Path, communicator=None):
         self.log_path = logger_path
-        self.logger_dir = self.log_path.parent
+        self.logger_dir: Path = self.log_path.parent
         self.logger_dir.mkdir(exist_ok=True)
         self._logger = basic_logger(logger_path)
         self._communicator = communicator
@@ -176,3 +176,12 @@ def plot_norms(u_norms, p_norms, time_steps, path):
     plt.grid(linestyle='dotted')
     plt.legend(loc='best', fontsize=14)
     plt.savefig(path / "norms.pdf", bbox_inches='tight')
+
+
+def plot_landmarks(lms: np.array, label: str, path: Path):
+    lms = np.append(lms, [lms[0, :]], axis=0)
+    plt.figure()
+    plt.plot(lms[:, 0], lms[:, 1], 'd:', label=label)
+    plt.legend(loc='best')
+    plt.savefig(str(path))
+    plt.close()
