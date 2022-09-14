@@ -11,10 +11,10 @@ class Curve:
 
         self.name = name
         self.points = points
-        self.n = len(points)
-        periodic_mesh = PeriodicIntervalMesh(self.n, 2*np.pi, comm=communicator)
-        V = VectorFunctionSpace(periodic_mesh, "CG", 1, dim=2)
-        self.point_function = Function(V, val=points)
+        n_cells, dim = self.points.shape
+        periodic_mesh = PeriodicIntervalMesh(n_cells, 2*np.pi, comm=communicator)
+        V = VectorFunctionSpace(periodic_mesh, "CG", 1, dim=dim)
+        self.point_function = Function(V, val=self.points)
 
     def at(self, param: np.array) -> np.array:
         return self.point_function.at(param)
