@@ -100,6 +100,7 @@ class EnsembleKalmanFilter:
 
             # either we have converged or we correct
             if self.has_converged(new_error, previous_error):
+                self._info(f"Filter has converged.")
                 break
             else:
                 centered_shape = np.ndarray.flatten(self.shape - shape_mean)
