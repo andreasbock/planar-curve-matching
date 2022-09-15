@@ -21,6 +21,7 @@ if __name__ == "__main__":
         shape_names=['circle'],
         resolutions=[0.5],
         landmarks=[20],
+        communicator=ensemble_object.comm,
     )
 
     # run EKI over all manufactured solutions
