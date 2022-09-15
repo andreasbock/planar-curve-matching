@@ -123,7 +123,8 @@ class EnsembleKalmanFilter:
             utils.pdump(alphas, self._logger.logger_dir / "alphas")
             utils.pdump(consensuses_momentum, self._logger.logger_dir / "consensuses_momentum")
             utils.pdump(consensuses_theta, self._logger.logger_dir / "consensuses_theta")
-        self._info(f"Filter stopped - maximum iteration count reached.")
+        if iteration > max_iterations:
+            self._info(f"Filter stopped - maximum iteration count reached.")
 
     def predict(self):
         # shoot using ensemble momenta
