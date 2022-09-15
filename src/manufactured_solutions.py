@@ -5,9 +5,8 @@ from typing import List, Any
 
 from firedrake import *
 import numpy as np
-from matplotlib import pyplot as plt
 
-from src.curves import Curve, CURVES
+from src.curves import Curve
 import src.utils as utils
 
 
@@ -84,23 +83,20 @@ class ManufacturedSolution:
 
 
 def get_solutions(
+    shapes: List[str],
     momentum_names: List[str] = None,
-    shape_names: List[str] = None,
     resolutions: List[float] = None,
     landmarks: List[int] = None,
     communicator=COMM_WORLD,
 ) -> List[ManufacturedSolution]:
-
     momenta = momentum_names if momentum_names is not None else MANUFACTURED_SOLUTIONS_MOMENTUM_NAMES
-    shapes = shape_names if shape_names is not None else [c(communicator).name for c in CURVES]
     resolutions = resolutions if resolutions is not None else MESH_RESOLUTIONS
     landmarks = landmarks if landmarks is not None else MANUFACTURED_SOLUTIONS_PARAMS
 
     solutions = []
     for momentum, shape, res, lms in itertools.product(momenta, shapes, resolutions, landmarks):
-        name = f"{shape}_{momentum}"
-        solution_path = MANUFACTURED_SOLUTIONS_PATH / f"h={res}" / name / f"{name}_LANDMARKS={lms}"
-        solutions.append(ManufacturedSolution.load(solution_path, communicator))
+        solution = get_solution(momentum, shape, res, lms, communicator)
+        solutions.append(solution)
     return solutions
 
 
@@ -117,15 +113,15 @@ def get_solution(
 
 
 def _expand(x, y):
-    return 50.0/72.
+    return Constant(50.0/72.)
 
 
 def _contract(x, y):
-    return -50./72.
+    return Constant(-50./72.)
 
 
 def _star(x, y):
-    return 40/72. * cos(2 * pi * x / 5)
+    return Constant(40/72.) * cos(2 * pi * x / 5)
 
 
 def _teardrop(x, y):
