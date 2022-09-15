@@ -68,7 +68,6 @@ class ManufacturedSolution:
 
     @classmethod
     def load(cls, base_path: Path, communicator=COMM_WORLD) -> "ManufacturedSolution":
-        print(f"Loading solution from {base_path}.")
         return ManufacturedSolution(
             template=Curve(
                 name=utils.pload(base_path / cls._curve_name),
