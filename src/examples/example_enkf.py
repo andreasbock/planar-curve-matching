@@ -17,8 +17,7 @@ if __name__ == "__main__":
     ensemble_object = Ensemble(COMM_WORLD, M=process_per_ensemble_member)
 
     manufactured_solutions = get_solutions(
-        momentum_names=['squeeze'],
-        shape_names=['circle'],
+        shapes=['circle', 'random_shape', 'small_triangle'],
         resolutions=[0.5],
         landmarks=[20],
         communicator=ensemble_object.comm,
@@ -52,7 +51,7 @@ if __name__ == "__main__":
         random_part = rg.uniform(enkf.forward_operator.DGT, -4, 4)
         momentum = manufactured_solution.momentum
         x, y = SpatialCoordinate(enkf.forward_operator.mesh)
-        momentum = enkf.forward_operator.momentum_function().interpolate(Constant(momentum.signal(x, y)))
+        momentum = enkf.forward_operator.momentum_function().interpolate(momentum.signal(x, y))
         momentum.assign(random_part)
         # run the EKI
         enkf.run_filter(
