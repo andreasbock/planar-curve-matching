@@ -117,11 +117,12 @@ class EnsembleKalmanFilter:
             self._info(f"Filter stopped - maximum iteration count reached.")
 
     def predict(self):
-        # shoot using ensemble momenta
+        # shoot using ensemble momenta & evaluate
         curve_result = self.forward_operator.shoot(self.momentum)
         template_points = self.forward_operator.template.at(self.parameterisation)
         self.shape = np.array(curve_result.diffeo.at(template_points))
 
+        # compute ensemble means
         shape_mean = self._compute_shape_mean()
         momentum_mean = self._compute_momentum_mean()
         theta_mean = self._compute_theta_mean()
