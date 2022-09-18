@@ -5,7 +5,6 @@ import scipy
 import numpy as np  # for pickle, don't remove!
 
 from firedrake import *
-from matplotlib import pyplot as plt
 from pyop2.mpi import MPI
 
 import src.utils as utils
@@ -85,15 +84,6 @@ class EnsembleKalmanFilter:
             if self._rank == 0:
                 utils.pdump(shape_mean, self._logger.logger_dir / f"q_mean_iter={iteration}")
                 utils.pdump(theta_mean, self._logger.logger_dir / f"t_mean_iter={iteration}")
-
-                plt.figure()
-                lms = np.append(self.shape, [self.shape[0, :]], axis=0)
-                plt.plot(lms[:, 0], lms[:, 1], 'd:', label='Shape')
-                plt.plot(_target_periodic[:, 0], _target_periodic[:, 1], 'b-', label='Target')
-                plt.savefig(str(self._logger.logger_dir / f"shape_iter={iteration}.pdf"))
-                plt.legend(loc='best')
-                plt.close()
-
                 #consensuses_momentum.append(self._consensus_momentum(momentum_mean))
                 #consensuses_theta.append(self._consensus_theta(theta_mean))
                 errors.append(new_error)
