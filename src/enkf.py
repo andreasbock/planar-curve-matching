@@ -247,13 +247,13 @@ class EnsembleKalmanFilter:
 
     def _consensus_momentum(self, momentum_mean):
         _consensus_me = np.sqrt(np.array([assemble((self.momentum('+') - momentum_mean('+')) ** 2 * dS(10))]))
-        _consensus = np.zeros(_consensus_me.shape)
+        _consensus = np.zeros(shape=_consensus_me.shape)
         self._mpi_reduce(_consensus_me, _consensus)
         return _consensus[0] / self.ensemble_size
 
     def _consensus_theta(self, theta_mean):
         _consensus_me = np.linalg.norm(self.parameterisation - theta_mean)
-        _consensus = np.zeros(_consensus_me.shape)
+        _consensus = np.zeros(shape=_consensus_me.shape)
         self._mpi_reduce(_consensus_me, _consensus)
         return _consensus / self.ensemble_size
 
