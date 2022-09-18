@@ -102,7 +102,7 @@ class EnsembleKalmanFilter:
                     self._correct_momentum(momentum_mean, centered_shape, shape_update)
                 if self._inverse_problem_params.optimise_parameterisation:
                     self._info(f"Iteration {iteration}: correcting parameterisation...")
-                    #self._correct_theta(theta_mean, mismatch, shape_update)
+                    self._correct_theta(theta_mean, mismatch, shape_update)
                 if self._rank == 0:
                     alphas.append(alpha)
 
