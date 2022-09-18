@@ -104,7 +104,7 @@ def get_solution(
     shape_name: str,
     resolution: float,
     landmarks: int,
-    communicator=None,
+    communicator=COMM_WORLD,
 ) -> ManufacturedSolution:
     name = f"{shape_name}_{momentum_name}"
     solution_path = MANUFACTURED_SOLUTIONS_PATH / f"h={resolution}" / name / f"{name}_LANDMARKS={landmarks}"
