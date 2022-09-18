@@ -193,6 +193,8 @@ class EnsembleKalmanFilter:
         elif np.fabs(n_err - err) < self._inverse_problem_params.relative_tolerance:
             self._info("No improvement in residual, terminating filter.")
             return True
+        else:
+            return False
 
     def error_norm(self, mismatch):
         return observation_norm(self.sqrt_gamma_inv, mismatch)
