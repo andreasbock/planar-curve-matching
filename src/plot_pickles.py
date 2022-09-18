@@ -11,6 +11,12 @@ plt.rc('text', usetex=True)
 plt.rc('font', family='serif')
 
 print_freq = 1
+shape_marker = 'x'
+shape_linestyle = 'solid'
+shape_label = 'Reconstruction'
+target_marker = 'd'
+target_linestyle = '-'
+target_label = 'Target'
 
 
 def plot_consensus(res_dir: Path):
@@ -72,23 +78,39 @@ def plot_shape_means(res_dir: Path):
         q_mean = utils.pload(res_dir / (prefix + str(i)))
         q_means.append(q_mean)
 
+    target = utils.pload(res_dir / "target")
+    target = np.append(target, [target[0, :]], axis=0)
+
     # plot pickles
-    print("Plotting means...")
+    print("Plotting all means together...")
+    plt.figure()
     plt.grid()
-    plt.xlabel('$x$-coordinate')
-    plt.ylabel('$y$-coordinate')
+    plt.xlabel('$x$')
+    plt.ylabel('$y$')
     j = 0
+    shapes = []
     while j < num_q_means:
         shape = np.append(q_means[j], [q_means[j][0, :]], axis=0)
         plt.plot(shape[:, 0], shape[:, 1])
         j += print_freq
+        shapes.append(shape)
 
-    target = utils.pload(res_dir / "target")
-    target = np.append(target, [target[0, :]], axis=0)
-    plt.plot(target[:, 0], target[:, 1], 'd:', label='Target')
+    plt.plot(target[:, 0], target[:, 1], marker=target_marker, linestyle=target_linestyle, label=target_label)
     plt.legend(loc='best')
-    plt.savefig(res_dir / 'q_means.pdf')
+    plt.savefig(res_dir / 'shape_means.pdf')
     plt.clf()
+
+    print("Plotting mean progression...")
+    for iteration, shape in enumerate(shapes):
+        plt.figure()
+        plt.grid()
+        plt.xlabel('$x$')
+        plt.ylabel('$y$')
+        plt.plot(shape[:, 0], shape[:, 1], marker=shape_marker, linestyle=shape_linestyle, label=shape_label)
+        plt.plot(target[:, 0], target[:, 1], marker=target_marker, linestyle=target_linestyle, label=target_label)
+        plt.legend(loc='best')
+        plt.savefig(res_dir / f"shape_iter={iteration}.pdf")
+        plt.clf()
 
 
 def plot_mismatch(res_dir: Path):
@@ -109,8 +131,8 @@ def plot_mismatch(res_dir: Path):
     # plot pickles
     print("Plotting means...")
     plt.grid()
-    plt.xlabel('$x$-coordinate')
-    plt.ylabel('$y$-coordinate')
+    plt.xlabel('$x$')
+    plt.ylabel('$y$')
     j = 0
     while j < num_q_means:
         shape = np.append(q_means[j], [q_means[j][0, :]], axis=0)
@@ -125,7 +147,7 @@ def plot_mismatch(res_dir: Path):
     plt.clf()
 
 
-def plot_t_means(res_dir: Path):
+def plot_theta_means(res_dir: Path):
 
     # count pickles
     num_t_means = 0
@@ -144,8 +166,8 @@ def plot_t_means(res_dir: Path):
     # plot pickles
     print("Plotting theta means...")
     plt.grid()
-    plt.xlabel('$x$-coordinate')
-    plt.ylabel('$y$-coordinate')
+    plt.xlabel('$x$')
+    plt.ylabel('$y$')
     circ = lambda t: np.array([np.cos(t), np.sin(t)])
     j = 0
     while j < num_t_means:
@@ -187,5 +209,5 @@ if __name__ == "__main__":
         plot_consensus(p)
         plot_errors(p)
         plot_shape_means(p)
-        plot_t_means(p)
-        plot_mismatch(p)
+        plot_theta_means(p)
+        #plot_mismatch(p)
