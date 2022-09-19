@@ -64,27 +64,28 @@ def plot_errors(res_dir: Path):
         plt.clf()
 
     errors_path = res_dir / 'relative_error_momentum'
-    print(r'Plotting relative momentum error...')
-
-    plt.figure()
-    errors = utils.pload(errors_path)
-    plt.grid()
-    plt.xlabel('Iteration $k$')
-    plt.ylabel(r'Relative error')
-    plt.semilogy(range(1, len(errors) + 1), errors)
-    plt.savefig(res_dir / 'relative_error_momentum.pdf')
-    plt.clf()
+    if os.path.isfile(errors_path):
+        print(r'Plotting relative momentum error...')
+        plt.figure()
+        errors = utils.pload(errors_path)
+        plt.grid()
+        plt.xlabel('Iteration $k$')
+        plt.ylabel(r'Relative error')
+        plt.semilogy(range(1, len(errors) + 1), errors)
+        plt.savefig(res_dir / 'relative_error_momentum.pdf')
+        plt.clf()
 
     errors_path = res_dir / 'relative_error_param'
-    print(r'Plotting relative parameterisation error...')
-    plt.figure()
-    errors = utils.pload(errors_path)
-    plt.grid()
-    plt.xlabel('Iteration $k$')
-    plt.ylabel(r'Relative error')
-    plt.semilogy(range(1, len(errors) + 1), errors)
-    plt.savefig(res_dir / 'relative_error_param.pdf')
-    plt.clf()
+    if os.path.isfile(errors_path):
+        print(r'Plotting relative parameterisation error...')
+        plt.figure()
+        errors = utils.pload(errors_path)
+        plt.grid()
+        plt.xlabel('Iteration $k$')
+        plt.ylabel(r'Relative error')
+        plt.semilogy(range(1, len(errors) + 1), errors)
+        plt.savefig(res_dir / 'relative_error_param.pdf')
+        plt.clf()
 
 
 def plot_shape_means(res_dir: Path):
