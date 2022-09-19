@@ -49,7 +49,7 @@ class GeodesicShooter:
         mesh_path: Path,
         template: Curve = None,
         shooting_parameters: ShootingParameters = None,
-        communicator=None,
+        communicator=COMM_WORLD,
     ):
         self.mesh_path = mesh_path
         self._communicator = communicator
