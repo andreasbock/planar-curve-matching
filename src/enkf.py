@@ -57,6 +57,7 @@ class EnsembleKalmanFilter:
         self.sqrt_gamma_inv = None
 
     def run_filter(self, momentum, parameterisation, target, max_iterations):
+        self._info(f"Ensemble size: {self.ensemble_size}.")
         self.dump_parameters(target)
         self.momentum = momentum
         self.parameterisation = parameterisation
