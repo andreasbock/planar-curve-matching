@@ -8,6 +8,7 @@ from firedrake import *
 from pyop2.mpi import MPI
 
 import src.utils as utils
+from src.mesh_generation import CURVE_TAG
 from src.shooting import GeodesicShooter
 
 
@@ -22,7 +23,7 @@ class InverseProblemParameters:
     gamma_scale: float = 1  # observation variance
     eta: float = 1e-03  # noise limit, equals ||\Lambda^{0.5}(q1-G(.))||
     relative_tolerance: float = 1e-05  # relative error to previous iteration
-    sample_covariance_regularisation: float = .1  # alpha_0 regularisation parameter
+    sample_covariance_regularisation: float = .5  # alpha_0 regularisation parameter
     max_iter_regularisation: int = 40
     optimise_momentum: bool = True
     optimise_parameterisation: bool = True
@@ -56,7 +57,9 @@ class EnsembleKalmanFilter:
         self.sqrt_gamma = None
         self.sqrt_gamma_inv = None
 
-    def run_filter(self, momentum, parameterisation, target, max_iterations):
+    def run_filter(self, momentum, parameterisation, target, max_iterations, momentum_truth=None, param_truth=None):
+        if momentum_truth is not None:
+            norm_momentum_truth = np.sqrt(assemble((momentum_truth('+')) ** 2 * dS(CURVE_TAG)))
         self._info(f"Ensemble size: {self.ensemble_size}.")
         self.dump_parameters(target)
         self.momentum = momentum
@@ -71,6 +74,7 @@ class EnsembleKalmanFilter:
         # initialise containers for logging
         errors, alphas = [], []
         consensuses_momentum, consensuses_theta = [], []
+        relative_error_momentum, relative_error_param = [], []
 
         iteration = 0
         previous_error = float("-inf")
@@ -88,6 +92,11 @@ class EnsembleKalmanFilter:
                 #consensuses_momentum.append(self._consensus_momentum(momentum_mean))
                 #consensuses_theta.append(self._consensus_theta(theta_mean))
                 errors.append(new_error)
+                if momentum_truth is not None:
+                    relative_momentum_norm = np.sqrt(assemble((self.momentum('+') - momentum_mean('+')) ** 2 * dS(CURVE_TAG)))
+                    relative_error_momentum.append(relative_momentum_norm / norm_momentum_truth)
+                if param_truth is not None:
+                    relative_error_param.append(np.linalg.norm(theta_mean - param_truth) / np.linalg.norm(param_truth))
 
             # either we have converged or we correct
             if self.has_converged(new_error, previous_error):
@@ -111,6 +120,8 @@ class EnsembleKalmanFilter:
             iteration += 1
         if self._rank == 0:
             utils.pdump(errors, self._logger.logger_dir / "errors")
+            utils.pdump(relative_error_momentum, self._logger.logger_dir / "relative_error_momentum")
+            utils.pdump(relative_error_param, self._logger.logger_dir / "relative_error_param")
             utils.pdump(alphas, self._logger.logger_dir / "alphas")
             utils.pdump(consensuses_momentum, self._logger.logger_dir / "consensuses_momentum")
             utils.pdump(consensuses_theta, self._logger.logger_dir / "consensuses_theta")
@@ -247,7 +258,7 @@ class EnsembleKalmanFilter:
         return theta_mean
 
     def _consensus_momentum(self, momentum_mean):
-        _consensus_me = np.sqrt(np.array([assemble((self.momentum('+') - momentum_mean('+')) ** 2 * dS(10))]))
+        _consensus_me = np.sqrt(np.array([assemble((self.momentum('+') - momentum_mean('+')) ** 2 * dS(CURVE_TAG))]))
         _consensus = np.zeros(shape=_consensus_me.shape)
         self._mpi_reduce(_consensus_me, _consensus)
         return _consensus[0] / self.ensemble_size
