@@ -52,15 +52,39 @@ def plot_errors(res_dir: Path):
     errors_path = res_dir / 'errors'
     if os.path.isfile(errors_path):
         print(r'Plotting errors...')
+        plt.figure()
         errors = utils.pload(errors_path)
         plt.grid()
-        plt.xlabel('Iteration $n$')
-        plt.ylabel(r'Error')
-        plt.plot(range(1, len(errors) + 1), errors, label=r'Error norm')
+        plt.xlabel('Iteration $k$')
+        plt.ylabel(r'Error level')
+        plt.semilogy(range(1, len(errors) + 1), errors, label=r'Data misfit')
         plt.axhline(y=eta, linestyle=':', color='red', label=r'Noise level')
         plt.legend(loc='best')
-        plt.savefig(res_dir / 'errors.pdf')
+        plt.savefig(res_dir / 'data_misfit.pdf')
         plt.clf()
+
+    errors_path = res_dir / 'relative_error_momentum'
+    print(r'Plotting relative momentum error...')
+
+    plt.figure()
+    errors = utils.pload(errors_path)
+    plt.grid()
+    plt.xlabel('Iteration $k$')
+    plt.ylabel(r'Relative error')
+    plt.semilogy(range(1, len(errors) + 1), errors)
+    plt.savefig(res_dir / 'relative_error_momentum.pdf')
+    plt.clf()
+
+    errors_path = res_dir / 'relative_error_param'
+    print(r'Plotting relative parameterisation error...')
+    plt.figure()
+    errors = utils.pload(errors_path)
+    plt.grid()
+    plt.xlabel('Iteration $k$')
+    plt.ylabel(r'Relative error')
+    plt.semilogy(range(1, len(errors) + 1), errors)
+    plt.savefig(res_dir / 'relative_error_param.pdf')
+    plt.clf()
 
 
 def plot_shape_means(res_dir: Path):
