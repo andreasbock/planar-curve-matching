@@ -95,15 +95,15 @@ class EnsembleKalmanFilter:
                 break
             else:
                 centered_shape = np.ndarray.flatten(self.shape - shape_mean)
-                mismatch_local = np.ndarray.flatten(target - self.shape)
                 cw_alpha_gamma_inv, alpha = self.compute_cw_operator(centered_shape, mismatch, localise=False)
+                mismatch_local = np.ndarray.flatten(target - self.shape)
                 shape_update = np.dot(cw_alpha_gamma_inv, mismatch_local)
                 if self._inverse_problem_params.optimise_momentum:
                     self._info(f"Iteration {iteration}: correcting momentum...")
                     self._correct_momentum(momentum_mean, centered_shape, shape_update)
                 if self._inverse_problem_params.optimise_parameterisation:
                     self._info(f"Iteration {iteration}: correcting parameterisation...")
-                    self._correct_theta(theta_mean, mismatch, shape_update)
+                    self._correct_theta(theta_mean, centered_shape, shape_update)
                 if self._rank == 0:
                     alphas.append(alpha)
 
@@ -142,8 +142,8 @@ class EnsembleKalmanFilter:
         gain = np.dot(c_pq_all, shape_update)
         self.momentum = Function(self.forward_operator.DGT, val=gain)
 
-    def _correct_theta(self, theta_mean, mismatch, shape_update):
-        cov_theta = np.outer(self.parameterisation - theta_mean, mismatch)
+    def _correct_theta(self, theta_mean, centered_shape, shape_update):
+        cov_theta = np.outer(self.parameterisation - theta_mean, centered_shape)
         cov_theta_all = np.zeros(shape=cov_theta.shape)
         self._mpi_reduce(cov_theta, cov_theta_all)
         cov_theta_all /= self.ensemble_size - 1
