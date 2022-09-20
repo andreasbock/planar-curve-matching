@@ -18,8 +18,8 @@ def convergence_experiment():
     ensemble_object = Ensemble(COMM_WORLD, M=process_per_ensemble_member)
 
     manufactured_solutions = get_solutions(
-        shapes=['circle', 'small_triangle'],
-        momentum_names=['expand', 'teardrop'],
+        shapes=['circle'],
+        momentum_names=['expand', 'teardrop', 'star', 'squeeze'],
         resolutions=[resolution],
         landmarks=[num_observations],
         communicator=ensemble_object.comm,
@@ -52,22 +52,27 @@ def convergence_experiment():
         # perturb momentum & parameterisation
         pcg = randomfunctiongen.PCG64(seed=12315123)
         rg = randomfunctiongen.Generator(pcg)
-        random_part = rg.uniform(enkf.forward_operator.DGT, -1, 1)
-        momentum = manufactured_solution.momentum
+
+        low, high = -1, 1
+        if 'expand' in manufactured_solution.name():
+            low = -1
+            high = 0
+
+        random_part = rg.uniform(enkf.forward_operator.DGT, low, high)
         x, y = SpatialCoordinate(enkf.forward_operator.mesh)
-        momentum_truth = enkf.forward_operator.momentum_function().interpolate(momentum.signal(x, y))
-        momentum = enkf.forward_operator.momentum_function().assign(momentum_truth + random_part)
+        momentum_truth = enkf.forward_operator.momentum_function().interpolate(manufactured_solution.momentum.signal(x, y))
+        initial_momentum = enkf.forward_operator.momentum_function().assign(random_part)
 
         # perturb parameterisation
         parameterisation = (
-                manufactured_solution.parameterisation
-                + rg.uniform(low=-1, high=1, size=manufactured_solution.parameterisation.shape)
+                #manufactured_solution.parameterisation
+                + rg.uniform(low=0, high=2*np.pi, size=manufactured_solution.parameterisation.shape)
         ) % 2 * np.pi
         parameterisation.sort()
 
         # run the EKI
         enkf.run_filter(
-            momentum=momentum,
+            momentum=initial_momentum,
             parameterisation=parameterisation,
             target=manufactured_solution.target,
             max_iterations=max_iterations,
