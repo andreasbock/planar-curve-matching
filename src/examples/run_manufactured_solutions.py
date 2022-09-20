@@ -16,6 +16,7 @@ if __name__ == "__main__":
     logger = utils.Logger(MANUFACTURED_SOLUTIONS_PATH / "manufactured_solutions.log", )
 
     shooting_parameters = ShootingParameters()
+    shooting_parameters.time_steps = 15
 
     for template in CURVES():
         for resolution in MESH_RESOLUTIONS:
