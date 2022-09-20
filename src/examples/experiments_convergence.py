@@ -63,6 +63,7 @@ def convergence_experiment():
                 manufactured_solution.parameterisation
                 + rg.uniform(low=-1, high=1, size=manufactured_solution.parameterisation.shape)
         ) % 2 * np.pi
+        parameterisation.sort()
 
         # run the EKI
         enkf.run_filter(
