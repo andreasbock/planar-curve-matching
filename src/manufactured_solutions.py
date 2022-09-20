@@ -120,11 +120,11 @@ def _contract(x, y):
 
 
 def _star(x, y):
-    return Constant(40/72.) * cos(2 * pi * x / 5)
+    return Constant(1.3) * cos(2 * pi * x / 5)
 
 
 def _teardrop(x, y):
-    return conditional(y < 0, -60/72. * sign(y), 60/72. * exp(-x ** 2 / 5))
+    return conditional(y < 0, -60/40. * sign(y), 60/40. * exp(-x ** 2 / 5))
 
 
 def _squeeze(x, y):
