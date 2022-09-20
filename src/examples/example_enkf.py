@@ -11,7 +11,6 @@ if __name__ == "__main__":
     # parameters
     max_iterations = 10
     shooting_parameters = ShootingParameters()
-    shooting_parameters.velocity_solver_parameters = {'ksp_type': 'cg'}
     process_per_ensemble_member = 1
     inverse_problem_parameters = InverseProblemParameters()
     ensemble_object = Ensemble(COMM_WORLD, M=process_per_ensemble_member)
