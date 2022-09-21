@@ -5,8 +5,6 @@ import firedrake
 from firedrake import *
 from pathlib import Path
 
-import numpy as np
-
 import src.utils as utils
 from src.curves import Curve
 from src.manufactured_solutions import Momentum
