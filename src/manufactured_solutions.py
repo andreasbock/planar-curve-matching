@@ -41,13 +41,15 @@ class ManufacturedSolution:
     mesh_path: Path
     momentum: Momentum
     parameterisation: Parameterisation
+    reparam_values: np.array
 
-    _template_file_name: str = "template_coefs"
+    _template_file_name: str = "template"
     _curve_name: str = "curve_name"
     _target_name: str = "target"
     _mesh_name: str = "mesh_path"
     _momentum_name: str = "momentum"
     _parameterisation_name: str = "parameterisation"
+    _reparam_values_name: str = "reparam_values"
 
     def name(self) -> str:
         return f"{self.mesh_path.stem}_{self.momentum.name}_LANDMARKS={len(self.parameterisation)}"
@@ -63,8 +65,8 @@ class ManufacturedSolution:
         utils.pdump(self.mesh_path, path / self._mesh_name)
         utils.pdump(self.momentum, path / self._momentum_name)
         utils.pdump(self.parameterisation, path / self._parameterisation_name)
+        utils.pdump(self.reparam_values, path / self._reparam_values_name)
         utils.plot_landmarks(self.target, 'Target', path / 'target.pdf')
-
 
     @classmethod
     def load(cls, base_path: Path, communicator=COMM_WORLD) -> "ManufacturedSolution":
@@ -78,6 +80,7 @@ class ManufacturedSolution:
             mesh_path=utils.pload(base_path / cls._mesh_name),
             momentum=utils.pload(base_path / cls._momentum_name),
             parameterisation=utils.pload(base_path / cls._parameterisation_name),
+            reparam_values=utils.pload(base_path / cls._reparam_values_name),
         )
 
 
