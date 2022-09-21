@@ -49,35 +49,34 @@ class Curve:
 
 
 def CURVES(communicator=COMM_WORLD) -> List[Curve]:
-    return [
-        Curve(
-            name="circle",
-            points=5 * np.array(
-                [
-                    (np.cos(t), np.sin(t)) for t in np.linspace(0, 2*np.pi, num=25)
-                ][:-1]
-            ),
-            communicator=communicator,
+    circle = Curve(
+        name="circle",
+        points=5 * np.array(
+            [
+                (np.cos(t), np.sin(t)) for t in np.linspace(0, 2*np.pi, num=25)
+            ][:-1]
         ),
-        Curve(
-            name="small_triangle",
-            points=np.array([[-4, -4], [6, 2], [4, 4]]),
-            communicator=communicator,
+        communicator=communicator,
+    )
+    small_triangle = Curve(
+        name="small_triangle",
+        points=np.array([[-4, -4], [6, 2], [4, 4]]),
+        communicator=communicator,
+    )
+    random_shape = Curve(
+        name="random_shape",
+        points=np.array(
+            [
+                [1, 1],
+                [6, 1],
+                [7, 3],
+                [5, 4],
+                [1, 7],
+                [-4, 4],
+                [-2, 4],
+                [0, -2]
+            ]
         ),
-        Curve(
-            name="random_shape",
-            points=np.array(
-                [
-                    [1, 1],
-                    [6, 1],
-                    [7, 3],
-                    [5, 4],
-                    [1, 7],
-                    [-4, 4],
-                    [-2, 4],
-                    [0, -2]
-                ]
-            ),
-            communicator=communicator,
-        ),
-    ]
+        communicator=communicator,
+    )
+    return [circle]
