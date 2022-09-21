@@ -1,7 +1,31 @@
 from typing import List
+from scipy.interpolate import CubicSpline
+import numpy as np
+
 from firedrake import PeriodicIntervalMesh, VectorFunctionSpace, Function, COMM_WORLD
 
-import numpy as np
+
+class Reparameterisation:
+
+    def __init__(self, n_cells, parameterisation: np.array = None):
+        theta = 2*np.pi*np.linspace(0, 1, n_cells)
+
+        if parameterisation is None:
+            # just construct the identity mapping
+            parameterisation = theta.copy()
+            parameterisation[-1] = parameterisation[0]
+
+        self.spline = CubicSpline(theta, parameterisation, bc_type='periodic')
+
+    def exponentiate(self, points, time_steps) -> np.array:
+        dt = 1 / time_steps
+        new_points = points.copy()
+        for t in range(time_steps):
+             new_points += self.spline(new_points) * dt
+        return new_points
+
+    def at(self, param: np.array) -> np.array:
+        return self.spline(param)
 
 
 class Curve:
@@ -16,12 +40,12 @@ class Curve:
         V = VectorFunctionSpace(periodic_mesh, "CG", 1, dim=dim)
         self.point_function = Function(V, val=self.points)
 
-    def at(self, param: np.array) -> np.array:
-        return self.point_function.at(param)
-
     @classmethod
     def make(cls, name: str, points: np.array) -> "Curve":
         return Curve(name, points)
+
+    def at(self, param: np.array) -> np.array:
+        return self.point_function.at(param)
 
 
 def CURVES(communicator=COMM_WORLD) -> List[Curve]:
