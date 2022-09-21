@@ -30,7 +30,6 @@ class ShootingParameters:
     momentum_degree: int = 0
     alpha: float = 1
     time_steps: int = 10
-    time_steps_reparam: int = 5
 
 @dataclass
 class CurveResult:
