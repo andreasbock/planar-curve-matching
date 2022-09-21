@@ -3,7 +3,7 @@ import numpy as np
 from firedrake import File
 
 from src import utils
-from src.curves import CURVES
+from src.curves import CURVES, Reparameterisation
 from src.manufactured_solutions import (
     MANUFACTURED_SOLUTIONS_PATH, MANUFACTURED_SOLUTIONS_MOMENTUM, MESH_RESOLUTIONS,  MANUFACTURED_SOLUTIONS_PARAMS,
     ManufacturedSolution,
@@ -17,6 +17,7 @@ if __name__ == "__main__":
 
     shooting_parameters = ShootingParameters()
     shooting_parameters.time_steps = 15
+    time_steps_reparam = 10
 
     for template in CURVES():
         for resolution in MESH_RESOLUTIONS:
@@ -29,15 +30,20 @@ if __name__ == "__main__":
                 # shooting
                 logger.info(f"Shooting with `{momentum.name}`.")
                 shooter = GeodesicShooter(logger, mesh_path, template, shooting_parameters)
-                curve_result = shooter.shoot(momentum)
+
                 template_and_momentum_name = f"{mesh_path.stem}_{momentum.name}"
                 path = mesh_path.parent / template_and_momentum_name
                 path.mkdir(exist_ok=True)
                 # logging
                 logger.info(f"Logging to `{path}`.")
-
                 for parameterisation in MANUFACTURED_SOLUTIONS_PARAMS:
-                    template_points = template.at(parameterisation)
+                    n_cells = len(parameterisation)
+                    values = np.random.normal(loc=0, scale=.1, size=n_cells)
+                    reparam = Reparameterisation(n_cells, values=values)
+                    reparameterised_points = reparam.exponentiate(parameterisation, time_steps_reparam)
+                    template_points = template.at(reparameterised_points)
+
+                    curve_result = shooter.shoot(momentum)
                     target = np.array(curve_result.diffeo.at(template_points))
 
                     # dump the solution
@@ -46,7 +52,8 @@ if __name__ == "__main__":
                         target=target,
                         mesh_path=mesh_path,
                         momentum=momentum,
-                        parameterisation=parameterisation,
+                        reparam_values=values,
+                        parameterisation=reparameterised_points,
                     ).dump(path)
                     logger.info(f"Wrote solution to {path}.")
 
