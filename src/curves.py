@@ -7,22 +7,21 @@ from firedrake import PeriodicIntervalMesh, VectorFunctionSpace, Function, COMM_
 
 class Reparameterisation:
 
-    def __init__(self, n_cells, parameterisation: np.array = None):
+    def __init__(self, n_cells, values: np.array = None):
         theta = 2*np.pi*np.linspace(0, 1, n_cells)
 
-        if parameterisation is None:
-            # just construct the identity mapping
-            parameterisation = theta.copy()
-            parameterisation[-1] = parameterisation[0]
+        if values is None:
+            values = theta.copy()
 
-        self.spline = CubicSpline(theta, parameterisation, bc_type='periodic')
+        values[-1] = values[0]
+        self.spline = CubicSpline(theta, values, bc_type='periodic')
 
     def exponentiate(self, points, time_steps) -> np.array:
         dt = 1 / time_steps
         new_points = points.copy()
         for t in range(time_steps):
-             new_points += self.spline(new_points) * dt
-        return new_points
+            new_points = (new_points + self.spline(new_points) * dt)
+        return new_points % (2 * np.pi)
 
     def at(self, param: np.array) -> np.array:
         return self.spline(param)
