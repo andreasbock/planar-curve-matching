@@ -55,8 +55,9 @@ def convergence_experiment():
 
         low, high = -1, 1
         if 'expand' in manufactured_solution.name():
-            low = -1
-            high = 0
+            low, high = -1, 0
+        elif 'contract' in manufactured_solution.name():
+            low, high = 0, 1
 
         random_part = rg.uniform(enkf.forward_operator.DGT, low, high)
         x, y = SpatialCoordinate(enkf.forward_operator.mesh)
