@@ -123,7 +123,7 @@ def plot_shape_means(res_dir: Path):
     plt.plot(target[:, 0], target[:, 1], marker=target_marker, linestyle=target_linestyle, label=target_label)
     plt.legend(loc='best')
     plt.savefig(res_dir / 'shape_means.pdf')
-    plt.clf()
+    plt.close()
 
     print("Plotting mean progression...")
     for iteration, shape in enumerate(shapes):
@@ -135,7 +135,7 @@ def plot_shape_means(res_dir: Path):
         plt.plot(target[:, 0], target[:, 1], marker=target_marker, linestyle=target_linestyle, label=target_label)
         plt.legend(loc='best')
         plt.savefig(res_dir / f"shape_iter={iteration}.pdf")
-        plt.clf()
+        plt.close()
 
 
 def plot_mismatch(res_dir: Path):
