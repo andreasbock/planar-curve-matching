@@ -142,10 +142,7 @@ class EnsembleKalmanFilter:
         return shape_mean, momentum_mean, theta_mean
 
     def _correct_momentum(self, momentum_mean, centered_shape, shape_update):
-        tmp = self.forward_operator.momentum_function()
-        tmp.assign(self.momentum - momentum_mean)
-
-        centered_momentum = tmp.dat.data
+        centered_momentum = self.momentum.dat.data - momentum_mean.dat.data
         c_pq = np.outer(centered_momentum, centered_shape)
         c_pq_all = np.zeros(shape=c_pq.shape)
         self._mpi_reduce(c_pq, c_pq_all)
