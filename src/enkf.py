@@ -8,6 +8,7 @@ from firedrake import *
 from pyop2.mpi import MPI
 
 import src.utils as utils
+from src.curves import Reparameterisation
 from src.mesh_generation import CURVE_TAG
 from src.shooting import GeodesicShooter
 
@@ -23,10 +24,11 @@ class InverseProblemParameters:
     gamma_scale: float = 1  # observation variance
     eta: float = 1e-03  # noise limit, equals ||\Lambda^{0.5}(q1-G(.))||
     relative_tolerance: float = 1e-05  # relative error to previous iteration
-    sample_covariance_regularisation: float = .5  # alpha_0 regularisation parameter
+    sample_covariance_regularisation: float = 1  # alpha_0 regularisation parameter
     max_iter_regularisation: int = 40
     optimise_momentum: bool = True
     optimise_parameterisation: bool = True
+    time_steps_exponentiate: int = 10
 
     def dump(self, logger):
         pass
@@ -57,13 +59,24 @@ class EnsembleKalmanFilter:
         self.sqrt_gamma = None
         self.sqrt_gamma_inv = None
 
-    def run_filter(self, momentum, parameterisation, target, max_iterations, momentum_truth=None, param_truth=None):
+    def run_filter(
+        self,
+        momentum: Function,
+        parameterisation: np.array,
+        reparam: Reparameterisation,
+        target: np.array,
+        max_iterations: int,
+        momentum_truth: Function = None,
+        param_truth: np.array = None,
+        reparam_truth: np.array = None,
+    ):
         if momentum_truth is not None:
             norm_momentum_truth = np.sqrt(assemble((momentum_truth('+')) ** 2 * dS(CURVE_TAG)))
         self._info(f"Ensemble size: {self.ensemble_size}.")
         self.dump_parameters(target)
         self.momentum = momentum
         self.parameterisation = parameterisation
+        self.reparam = reparam
 
         target = np.array(target)
         _target_periodic = np.append(target, [target[0, :]], axis=0)
@@ -80,7 +93,7 @@ class EnsembleKalmanFilter:
         previous_error = float("-inf")
         while iteration < max_iterations:
             self._info(f"Iteration {iteration}: predicting...")
-            shape_mean, momentum_mean, theta_mean = self.predict()
+            shape_mean, momentum_mean, reparam_mean = self.predict()
             mismatch = np.ndarray.flatten(target - shape_mean)
             new_error = self.error_norm(mismatch)
             self._info(f"Iteration {iteration}: Error norm: {new_error}")
@@ -88,7 +101,7 @@ class EnsembleKalmanFilter:
             # log everything
             if self._rank == 0:
                 utils.pdump(shape_mean, self._logger.logger_dir / f"q_mean_iter={iteration}")
-                utils.pdump(theta_mean, self._logger.logger_dir / f"t_mean_iter={iteration}")
+                utils.pdump(reparam_mean, self._logger.logger_dir / f"t_mean_iter={iteration}")
                 #consensuses_momentum.append(self._consensus_momentum(momentum_mean))
                 #consensuses_theta.append(self._consensus_theta(theta_mean))
                 errors.append(new_error)
@@ -112,7 +125,7 @@ class EnsembleKalmanFilter:
                     self._correct_momentum(momentum_mean, centered_shape, shape_update)
                 if self._inverse_problem_params.optimise_parameterisation:
                     self._info(f"Iteration {iteration}: correcting parameterisation...")
-                    self._correct_theta(theta_mean, centered_shape, shape_update)
+                    self._correct_reparam(reparam_mean, centered_shape, shape_update)
                 if self._rank == 0:
                     alphas.append(alpha)
 
@@ -129,17 +142,28 @@ class EnsembleKalmanFilter:
             self._info(f"Filter stopped - maximum iteration count reached.")
 
     def predict(self):
-        # shoot using ensemble momenta & evaluate
+        if self._inverse_problem_params.optimise_parameterisation:
+            # integrate reparameterisation
+            reparameterised_points = self.reparam.exponentiate(
+                self.parameterisation,
+                self._inverse_problem_params.time_steps_exponentiate,
+            )
+        else:
+            reparameterised_points = self.parameterisation
+
+        template_points = self.forward_operator.template.at(reparameterised_points)
+        # shoot with momenta
         curve_result = self.forward_operator.shoot(self.momentum)
-        template_points = self.forward_operator.template.at(self.parameterisation)
+
+        # evaluate curve
         self.shape = np.array(curve_result.diffeo.at(template_points))
 
         # compute ensemble means
         shape_mean = self._compute_shape_mean()
         momentum_mean = self._compute_momentum_mean()
-        theta_mean = self._compute_theta_mean()
+        reparam_mean = self._compute_reparam_mean()
 
-        return shape_mean, momentum_mean, theta_mean
+        return shape_mean, momentum_mean, reparam_mean
 
     def _correct_momentum(self, momentum_mean, centered_shape, shape_update):
         centered_momentum = self.momentum.dat.data - momentum_mean.dat.data
@@ -148,17 +172,18 @@ class EnsembleKalmanFilter:
         self._mpi_reduce(c_pq, c_pq_all)
         c_pq_all /= self.ensemble_size - 1
         gain = np.dot(c_pq_all, shape_update)
-        self.momentum = Function(self.forward_operator.DGT, val=gain)
+        gain_fn = Function(self.forward_operator.DGT, val=gain)
+        self.momentum.assign(self.momentum + gain_fn)
 
-    def _correct_theta(self, theta_mean, centered_shape, shape_update):
-        cov_theta = np.outer(self.parameterisation - theta_mean, centered_shape)
-        cov_theta_all = np.zeros(shape=cov_theta.shape)
-        self._mpi_reduce(cov_theta, cov_theta_all)
-        cov_theta_all /= self.ensemble_size - 1
-        gain = np.dot(cov_theta_all, shape_update)
-
-        self.parameterisation += gain
-        self.parameterisation = self.parameterisation % (2 * np.pi)
+    def _correct_reparam(self, reparam_mean, centered_shape, shape_update):
+        centered_param = self.reparam.spline.c - reparam_mean
+        c_rq = np.outer(centered_param, centered_shape)
+        c_rq_all = np.zeros(shape=c_rq.shape)
+        self._mpi_reduce(c_rq, c_rq_all)
+        c_rq_all /= self.ensemble_size - 1
+        gain = np.dot(c_rq_all, shape_update)
+        gain.shape = reparam_mean.shape
+        self.reparam.spline.c += gain
 
     def compute_cw_operator(self, centered_shape, mismatch, localise=False):
         rhs = self._inverse_problem_params.rho * self.error_norm(mismatch)
@@ -176,7 +201,7 @@ class EnsembleKalmanFilter:
             lhs = alpha * self.error_norm(np.dot(cw_alpha_gamma_inv, mismatch))
             self._info(f"\t lhs = {lhs}")
 
-            if True or lhs >= rhs:
+            if lhs >= rhs:
                 self._info(f"\t alpha = {alpha}")
                 return cw_alpha_gamma_inv, alpha
             alpha *= 2
@@ -248,11 +273,10 @@ class EnsembleKalmanFilter:
         momentum_mean.assign(momentum_mean * Constant(1 / self.ensemble_size))
         return momentum_mean
 
-    def _compute_theta_mean(self):
-        theta_mean = np.zeros(shape=self.parameterisation.shape)
-        self._mpi_reduce(self.parameterisation, theta_mean)
-        theta_mean /= self.ensemble_size
-        return theta_mean
+    def _compute_reparam_mean(self):
+        _reparam_mean = np.zeros(shape=self.reparam.spline.c.shape)
+        self._mpi_reduce(self.reparam.spline.c, _reparam_mean)
+        return _reparam_mean / self.ensemble_size
 
     def _consensus_momentum(self, momentum_mean):
         _consensus_me = np.sqrt(np.array([assemble((self.momentum('+') - momentum_mean('+')) ** 2 * dS(CURVE_TAG))]))

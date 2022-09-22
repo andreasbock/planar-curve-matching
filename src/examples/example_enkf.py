@@ -44,7 +44,7 @@ if __name__ == "__main__":
         )
         enkf._info(f"Loaded solution: '{manufactured_solution.name()}'.")
 
-        # perturb momentum & parameterisation
+        # perturb momentum
         pcg = randomfunctiongen.PCG64(seed=4113)
         rg = randomfunctiongen.Generator(pcg)
         random_part = rg.uniform(enkf.forward_operator.DGT, -4, 4)
@@ -52,10 +52,15 @@ if __name__ == "__main__":
         x, y = SpatialCoordinate(enkf.forward_operator.mesh)
         momentum = enkf.forward_operator.momentum_function().interpolate(momentum.signal(x, y))
         momentum.assign(random_part)
+
+        # perturb parameterisation
+        param_shape = manufactured_solution.parameterisation.shape
+        parameterisation = manufactured_solution.parameterisation + rg.normal(loc=0, scale=1, size=param_shape)
+
         # run the EKI
         enkf.run_filter(
             momentum=momentum,
-            parameterisation=manufactured_solution.parameterisation,
+            parameterisation=parameterisation,
             target=manufactured_solution.target,
             max_iterations=max_iterations,
         )

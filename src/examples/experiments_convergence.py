@@ -29,7 +29,8 @@ def convergence_experiment():
     for manufactured_solution in manufactured_solutions:
         # set up logging
         logger = utils.Logger(
-            PATH / manufactured_solution.name() / "example_enkf.log", ensemble_object.comm
+            PATH / manufactured_solution.name() / "example_enkf.log",
+            ensemble_object.comm,
         )
 
         # set up EnKF
@@ -49,35 +50,35 @@ def convergence_experiment():
         )
         enkf._info(f"Loaded solution: '{manufactured_solution.name()}'.")
 
-        # perturb momentum & parameterisation
+        # perturb momentum
         pcg = randomfunctiongen.PCG64(seed=12315123)
         rg = randomfunctiongen.Generator(pcg)
 
-        low, high = -1, 1
-        if 'expand' in manufactured_solution.name():
-            low, high = -1, 0
-        elif 'contract' in manufactured_solution.name():
-            low, high = 0, 1
-
-        random_part = rg.uniform(enkf.forward_operator.DGT, low, high)
+        random_part = rg.normal(enkf.forward_operator.DGT)
         x, y = SpatialCoordinate(enkf.forward_operator.mesh)
         momentum_truth = enkf.forward_operator.momentum_function().interpolate(manufactured_solution.momentum.signal(x, y))
         initial_momentum = enkf.forward_operator.momentum_function().assign(random_part)
 
         # perturb parameterisation
-        parameterisation = (
-                #manufactured_solution.parameterisation
+        initial_parameterisation = (
                 + rg.uniform(low=0, high=2*np.pi, size=manufactured_solution.parameterisation.shape)
-        ) % 2 * np.pi
-        parameterisation.sort()
+        ) % (2 * np.pi)
+        initial_parameterisation.sort()
+
+        initial_reparam = Reparameterisation(
+            n_cells=len(manufactured_solution.parameterisation),
+            values=rg.uniform(low=0, high=1, size=manufactured_solution.reparam_values.shape),
+        )
 
         # run the EKI
         enkf.run_filter(
             momentum=initial_momentum,
-            parameterisation=parameterisation,
+            parameterisation=initial_parameterisation,
+            reparam=initial_reparam,
             target=manufactured_solution.target,
             max_iterations=max_iterations,
             momentum_truth=momentum_truth,
+            reparam_truth=manufactured_solution.reparam_values,
             param_truth=manufactured_solution.parameterisation,
         )
 
