@@ -54,6 +54,7 @@ class EnsembleKalmanFilter:
         self.shape = None
         self.momentum = None
         self.parameterisation = None
+        self.reparam = None
 
         self.gamma = None
         self.sqrt_gamma = None
