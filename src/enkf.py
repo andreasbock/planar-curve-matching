@@ -262,7 +262,6 @@ class EnsembleKalmanFilter:
         self.ensemble.ensemble_comm.Barrier()
 
     def _compute_shape_mean(self):
-        # TODO: Karcher mean?
         shape_mean = np.zeros(shape=self.shape.shape)
         self._mpi_reduce(self.shape, shape_mean)
         shape_mean /= self.ensemble_size
