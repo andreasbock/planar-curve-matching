@@ -234,7 +234,7 @@ class EnsembleKalmanFilter:
 
     def dump_parameters(self, target=None):
         if self._rank == 0:
-
+            self._info(f"Ensemble size: {self.ensemble_size}.")
             self._info(f"{self._inverse_problem_params}")
             self.forward_operator.dump_parameters()
 
@@ -250,7 +250,6 @@ class EnsembleKalmanFilter:
         self.ensemble.ensemble_comm.Allreduce(f, reduced, op=MPI.SUM)
 
     def _clear_cache(self):
-        self.ensemble.ensemble_comm.Barrier()
         if self._rank == 0:
             fd_cache = os.environ['VIRTUAL_ENV'] + '/.cache/'
             for subdir in ['pyop2', 'tsfc']:
