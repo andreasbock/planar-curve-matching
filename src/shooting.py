@@ -22,9 +22,10 @@ class ShootingParameters:
     velocity_solver_parameters: dict = field(
         default_factory=lambda:
         {
-            'ksp_type': 'cg',
-            'ksp_rtol': '1e-7',
-            'pc_type': 'ilu',
+            'mat_type': 'aij',
+            'ksp_type': 'preonly',
+            'pc_factor_mat_solver_type': 'mumps',
+            'pc_type': 'lu'
         }
     )
     momentum_degree: int = 0

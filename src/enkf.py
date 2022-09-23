@@ -73,7 +73,6 @@ class EnsembleKalmanFilter:
     ):
         if momentum_truth is not None:
             norm_momentum_truth = np.sqrt(assemble((momentum_truth('+')) ** 2 * dS(CURVE_TAG)))
-        self._info(f"Ensemble size: {self.ensemble_size}.")
         self.dump_parameters(target)
         self.momentum = momentum
         self.parameterisation = parameterisation
@@ -106,11 +105,11 @@ class EnsembleKalmanFilter:
                 #consensuses_momentum.append(self._consensus_momentum(momentum_mean))
                 #consensuses_theta.append(self._consensus_theta(theta_mean))
                 errors.append(new_error)
-                if momentum_truth is not None:
-                    relative_momentum_norm = np.sqrt(assemble((self.momentum('+') - momentum_mean('+')) ** 2 * dS(CURVE_TAG)))
-                    relative_error_momentum.append(relative_momentum_norm / norm_momentum_truth)
-                if param_truth is not None:
-                    relative_error_param.append(np.linalg.norm(theta_mean - param_truth) / np.linalg.norm(param_truth))
+                #if momentum_truth is not None:
+                #    relative_momentum_norm = np.sqrt(assemble((self.momentum('+') - momentum_mean('+')) ** 2 * dS(CURVE_TAG)))
+                #    relative_error_momentum.append(relative_momentum_norm / norm_momentum_truth)
+                #if param_truth is not None:
+                #    relative_error_param.append(np.linalg.norm(theta_mean - param_truth) / np.linalg.norm(param_truth))
 
             # either we have converged or we correct
             if self.has_converged(new_error, previous_error):
@@ -118,7 +117,7 @@ class EnsembleKalmanFilter:
                 break
             else:
                 centered_shape = np.ndarray.flatten(self.shape - shape_mean)
-                cw_alpha_gamma_inv, alpha = self.compute_cw_operator(centered_shape, mismatch, localise=False)
+                cw_alpha_gamma_inv, alpha = self.compute_cw_operator(centered_shape, mismatch)
                 mismatch_local = np.ndarray.flatten(target - self.shape)
                 shape_update = np.dot(cw_alpha_gamma_inv, mismatch_local)
                 if self._inverse_problem_params.optimise_momentum:
@@ -166,15 +165,16 @@ class EnsembleKalmanFilter:
 
         return shape_mean, momentum_mean, reparam_mean
 
-    def _correct_momentum(self, momentum_mean, centered_shape, shape_update):
-        centered_momentum = self.momentum.dat.data - momentum_mean.dat.data
-        c_pq = np.outer(centered_momentum, centered_shape)
-        c_pq_all = np.zeros(shape=c_pq.shape)
-        self._mpi_reduce(c_pq, c_pq_all)
-        c_pq_all /= self.ensemble_size - 1
-        gain = np.dot(c_pq_all, shape_update)
-        gain_fn = Function(self.forward_operator.DGT, val=gain)
-        self.momentum.assign(self.momentum + gain_fn)
+    def _correct_momentum(self, momentum_mean, centered_shape_flat, shape_update):
+        if self._inverse_problem_params.optimise_momentum:
+            self._info(f"Correcting momentum...")
+            centered_momentum = self.forward_operator.momentum_function().assign(self.momentum - momentum_mean)
+            local_C_pw = np.outer(centered_momentum.dat.data, centered_shape_flat)
+            C_pw = np.empty(shape=local_C_pw.shape)
+            self.ensemble.ensemble_comm.Allreduce(local_C_pw, C_pw)
+            C_pw /= self.ensemble_size - 1
+            self.momentum.dat.data[:] = self.momentum.dat.data[:] + np.dot(C_pw, shape_update)
+            print(f"rank = {self._rank}, norm = {norm(self.momentum)}")
 
     def _correct_reparam(self, reparam_mean, centered_shape, shape_update):
         centered_param = self.reparam.spline.c - reparam_mean
@@ -186,12 +186,12 @@ class EnsembleKalmanFilter:
         gain.shape = reparam_mean.shape
         self.reparam.spline.c += gain
 
-    def compute_cw_operator(self, centered_shape, mismatch, localise=False):
+    def compute_cw_operator(self, centered_shape, mismatch):
         rhs = self._inverse_problem_params.rho * self.error_norm(mismatch)
         self._info(f"\t rhs = {rhs}")
 
         alpha = self._inverse_problem_params.sample_covariance_regularisation
-        cw = self.compute_cw(centered_shape, localise=localise)
+        cw = self.compute_cw(centered_shape)
 
         iteration = 0
         while iteration < self._inverse_problem_params.max_iter_regularisation:
@@ -212,18 +212,16 @@ class EnsembleKalmanFilter:
         print(error_message)
         raise Exception(error_message)
 
-    def compute_cw(self, centered_shape, localise=False):
+    def compute_cw(self, centered_shape):
         centered_shape_flat = np.ndarray.flatten(centered_shape)
         cov_mismatch = np.outer(centered_shape_flat, centered_shape_flat)
         cov_mismatch_all = np.zeros(shape=cov_mismatch.shape)
         self._mpi_reduce(cov_mismatch, cov_mismatch_all)
-        if localise:
-            cov_mismatch_all = np.multiply(cov_mismatch_all, np.eye(cov_mismatch_all.shape[0]))
         return cov_mismatch_all / (self.ensemble_size - 1)
 
     def has_converged(self, n_err, err):
         if n_err <= self._inverse_problem_params.tau*self._inverse_problem_params.eta:
-            self._info("Converged, error at noise level.")
+            self._info(f"Converged, error at noise level ({n_err} <= {self._inverse_problem_params.tau*self._inverse_problem_params.eta}).")
             return True
         elif np.fabs(n_err - err) < self._inverse_problem_params.relative_tolerance:
             self._info("No improvement in residual, terminating filter.")
