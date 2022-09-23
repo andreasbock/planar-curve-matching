@@ -174,7 +174,6 @@ class EnsembleKalmanFilter:
             self.ensemble.ensemble_comm.Allreduce(local_C_pw, C_pw)
             C_pw /= self.ensemble_size - 1
             self.momentum.dat.data[:] = self.momentum.dat.data[:] + np.dot(C_pw, shape_update)
-            print(f"rank = {self._rank}, norm = {norm(self.momentum)}")
 
     def _correct_reparam(self, reparam_mean, centered_shape, shape_update):
         centered_param = self.reparam.spline.c - reparam_mean
