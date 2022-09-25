@@ -49,7 +49,6 @@ class GeodesicShooter:
         communicator=COMM_WORLD,
     ):
         self.mesh_path = mesh_path
-        self._communicator = communicator
         self.mesh = Mesh(str(self.mesh_path), comm=communicator)
         self._logger = logger
         self.parameters = shooting_parameters or ShootingParameters()
@@ -59,7 +58,7 @@ class GeodesicShooter:
         # Function spaces
         self.XW = VectorFunctionSpace(self.mesh, "WXRobH3NC", degree=7, dim=2)
         self.DG = FunctionSpace(self.mesh, "DG", 0)
-        VDGT = VectorFunctionSpace(self.mesh, "DGT", degree=self.parameters.momentum_degree, dim=2)  # for momentum
+        VDGT = VectorFunctionSpace(self.mesh, "DGT", degree=0, dim=2)  # for shape normal
         self.XW_approx = VectorFunctionSpace(self.mesh, "DG", degree=7, dim=2)
         self.VCG1 = VectorFunctionSpace(self.mesh, "CG", degree=1, dim=2)  # for coordinate fields
         self.DGT = FunctionSpace(self.mesh, "DGT", self.parameters.momentum_degree)  # for momentum signal
