@@ -160,6 +160,8 @@ def plot_mismatch(res_dir: Path):
     plt.ylabel('$y$')
     j = 0
     while j < num_q_means:
+        shape = q_means[j]
+        shape.shape = (shape.size // 2, 2)
         shape = np.append(q_means[j], [q_means[j][0, :]], axis=0)
         plt.plot(shape[:, 0], shape[:, 1])
         j += print_freq
@@ -235,4 +237,4 @@ if __name__ == "__main__":
         plot_errors(p)
         plot_shape_means(p)
         plot_theta_means(p)
-        #plot_mismatch(p)
+        plot_mismatch(p)
