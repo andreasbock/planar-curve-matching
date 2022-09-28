@@ -102,6 +102,7 @@ class EnsembleKalmanFilter:
             if self._rank == 0:
                 utils.pdump(shape_mean, self._logger.logger_dir / f"q_mean_iter={iteration}")
                 utils.pdump(reparam_mean, self._logger.logger_dir / f"t_mean_iter={iteration}")
+                utils.pdump(mismatch, self._logger.logger_dir / f"mismatch_iter={iteration}")
                 #consensuses_momentum.append(self._consensus_momentum(momentum_mean))
                 #consensuses_theta.append(self._consensus_theta(theta_mean))
                 errors.append(new_error)
@@ -151,11 +152,11 @@ class EnsembleKalmanFilter:
         else:
             reparameterised_points = self.parameterisation
 
-        template_points = self.forward_operator.template.at(reparameterised_points)
         # shoot with momenta
         curve_result = self.forward_operator.shoot(self.momentum)
 
         # evaluate curve
+        template_points = self.forward_operator.template.at(reparameterised_points)
         self.shape = np.array(curve_result.diffeo.at(template_points))
 
         # compute ensemble means
@@ -168,12 +169,12 @@ class EnsembleKalmanFilter:
     def _correct_momentum(self, momentum_mean, centered_shape_flat, shape_update):
         if self._inverse_problem_params.optimise_momentum:
             self._info(f"Correcting momentum...")
-            centered_momentum = self.forward_operator.momentum_function().assign(self.momentum - momentum_mean)
+            centered_momentum = self.forward_operator.momentum_function()
+            centered_momentum.assign(self.momentum - momentum_mean)
             local_C_pw = np.outer(centered_momentum.dat.data, centered_shape_flat)
             C_pw = np.empty(shape=local_C_pw.shape)
-            self.ensemble.ensemble_comm.Allreduce(local_C_pw, C_pw)
-            C_pw /= self.ensemble_size - 1
-            self.momentum.dat.data[:] = self.momentum.dat.data[:] + np.dot(C_pw, shape_update)
+            self._mpi_reduce(local_C_pw, C_pw)
+            self.momentum.dat.data[:] += np.dot(C_pw, shape_update)
 
     def _correct_reparam(self, reparam_mean, centered_shape, shape_update):
         centered_param = self.reparam.spline.c - reparam_mean
@@ -208,7 +209,7 @@ class EnsembleKalmanFilter:
             iteration += 1
 
         error_message = f"!!! alpha failed to converge in {iteration} iterations"
-        print(error_message)
+        self._info(error_message)
         raise Exception(error_message)
 
     def compute_cw(self, centered_shape):
@@ -258,7 +259,7 @@ class EnsembleKalmanFilter:
         self.ensemble.ensemble_comm.Barrier()
 
     def _compute_shape_mean(self):
-        shape_mean = np.zeros(shape=self.shape.shape)
+        shape_mean = np.empty(shape=self.shape.shape)
         self._mpi_reduce(self.shape, shape_mean)
         shape_mean /= self.ensemble_size
         return shape_mean
