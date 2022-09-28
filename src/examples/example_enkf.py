@@ -51,11 +51,14 @@ if __name__ == "__main__":
         momentum = manufactured_solution.momentum
         x, y = SpatialCoordinate(enkf.forward_operator.mesh)
         momentum = enkf.forward_operator.momentum_function().interpolate(momentum.signal(x, y))
+        parameterisation = manufactured_solution.parameterisation
         momentum.assign(random_part)
 
-        # perturb parameterisation
-        param_shape = manufactured_solution.parameterisation.shape
-        parameterisation = manufactured_solution.parameterisation + rg.normal(loc=0, scale=1, size=param_shape)
+        # perturb reparam
+        initial_reparam = Reparameterisation(
+            n_cells=len(manufactured_solution.parameterisation),
+            values=rg.uniform(low=0, high=1, size=manufactured_solution.reparam_values.shape),
+        )
 
         # run the EKI
         enkf.run_filter(
