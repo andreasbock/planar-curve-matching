@@ -66,4 +66,5 @@ if __name__ == "__main__":
             parameterisation=parameterisation,
             target=manufactured_solution.target,
             max_iterations=max_iterations,
+            reparam=initial_reparam,
         )
