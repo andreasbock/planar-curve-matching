@@ -60,11 +60,7 @@ def convergence_experiment():
         initial_momentum = enkf.forward_operator.momentum_function().assign(random_part)
 
         # perturb parameterisation
-        initial_parameterisation = (
-                + rg.uniform(low=0, high=2*np.pi, size=manufactured_solution.parameterisation.shape)
-        ) % (2 * np.pi)
-        initial_parameterisation.sort()
-
+        initial_parameterisation = manufactured_solution.parameterisation
         initial_reparam = Reparameterisation(
             n_cells=len(manufactured_solution.parameterisation),
             values=rg.uniform(low=0, high=1, size=manufactured_solution.reparam_values.shape),
