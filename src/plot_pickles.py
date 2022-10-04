@@ -36,7 +36,7 @@ def plot_consensus(res_dir: Path):
             consensuses = utils.pload(res_dir / 'consensuses_{}'.format(var))
 
             # plot pickles
-            print("Plotting momentum consensuses...")
+            print(f"Plotting {var} consensuses...")
             ax = plt.subplot(111)
             ax.set_xlim(left=1, right=len(consensuses))
             plt.grid()
