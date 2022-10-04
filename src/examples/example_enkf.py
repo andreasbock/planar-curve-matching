@@ -2,18 +2,17 @@ from src.enkf import *
 from src.shooting import ShootingParameters
 from src.manufactured_solutions import get_solutions
 
-
-EXAMPLES_ENKF_PATH = utils.project_root() / "RESULTS_EXAMPLES_ENKF"
-EXAMPLES_ENKF_PATH.mkdir(exist_ok=True)
-
-
 if __name__ == "__main__":
     # parameters
     max_iterations = 10
     shooting_parameters = ShootingParameters()
     process_per_ensemble_member = 1
     inverse_problem_parameters = InverseProblemParameters()
+    inverse_problem_parameters.optimise_parameterisation = False
     ensemble_object = Ensemble(COMM_WORLD, M=process_per_ensemble_member)
+
+    EXAMPLES_ENKF_PATH = utils.project_root() / f"RESULTS_EXAMPLES_ENKF_ESIZE={ensemble_object.ensemble_comm.size}"
+    EXAMPLES_ENKF_PATH.mkdir(exist_ok=True)
 
     manufactured_solutions = get_solutions(
         shapes=['circle'],
