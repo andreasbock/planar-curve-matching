@@ -91,7 +91,7 @@ class GeodesicShooter:
             self.diffeo.assign(self.diffeo + self.u * dt)
 
         # move the mesh for visualisation
-        soft_diffeo = project(self.diffeo, self.XW_approx)  # TODO: Xu-Wu evaluation!
+        soft_diffeo = project(self.diffeo, self.XW_approx)
         return CurveResult(
             diffeo=soft_diffeo,
         )
