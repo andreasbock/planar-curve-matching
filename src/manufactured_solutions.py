@@ -85,6 +85,10 @@ class ManufacturedSolution:
 
     @classmethod
     def load(cls, base_path: Path, communicator=COMM_WORLD) -> "ManufacturedSolution":
+        parameterisation = utils.pload(base_path / cls._parameterisation_name)
+        reparam = Reparameterisation(n_cells=len(parameterisation))
+        reparam.spline.c = utils.pload(base_path / cls._reparam_name)
+
         return ManufacturedSolution(
             template=Curve(
                 name=utils.pload(base_path / cls._curve_name),
@@ -94,8 +98,9 @@ class ManufacturedSolution:
             target=utils.pload(base_path / cls._target_name),
             mesh_path=utils.pload(base_path / cls._mesh_name),
             momentum=utils.pload(base_path / cls._momentum_name),
-            parameterisation=utils.pload(base_path / cls._parameterisation_name),
+            parameterisation=parameterisation,
             reparam_values=utils.pload(base_path / cls._reparam_values_name),
+            reparam=reparam,
         )
 
 
