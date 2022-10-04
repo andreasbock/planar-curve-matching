@@ -16,7 +16,8 @@ if __name__ == "__main__":
     ensemble_object = Ensemble(COMM_WORLD, M=process_per_ensemble_member)
 
     manufactured_solutions = get_solutions(
-        shapes=['circle', 'random_shape', 'small_triangle'],
+        shapes=['circle'],
+        momentum_names=['contract', 'squeeze', 'teardrop'],
         resolutions=[0.5],
         landmarks=[20],
         communicator=ensemble_object.comm,
