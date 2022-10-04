@@ -49,13 +49,13 @@ if __name__ == "__main__":
         pcg = randomfunctiongen.PCG64(seed=4113)
         rg = randomfunctiongen.Generator(pcg)
         random_part = rg.uniform(enkf.forward_operator.MomentumSpace, -4, 4)
-        momentum = manufactured_solution.momentum
+
         x, y = SpatialCoordinate(enkf.forward_operator.mesh)
-        momentum = enkf.forward_operator.momentum_function().interpolate(momentum.signal(x, y))
-        parameterisation = manufactured_solution.parameterisation
-        momentum.assign(random_part)
+        momentum_truth = enkf.forward_operator.momentum_function().interpolate(manufactured_solution.momentum.signal(x, y))
+        initial_momentum = enkf.forward_operator.momentum_function().assign(random_part)
 
         # perturb reparam
+        initial_parameterisation = manufactured_solution.parameterisation
         initial_reparam = Reparameterisation(
             n_cells=len(manufactured_solution.parameterisation),
             values=rg.uniform(low=0, high=1, size=manufactured_solution.reparam_values.shape),
@@ -63,9 +63,11 @@ if __name__ == "__main__":
 
         # run the EKI
         enkf.run_filter(
-            momentum=momentum,
-            parameterisation=parameterisation,
+            momentum=initial_momentum,
+            parameterisation=initial_parameterisation,
             target=manufactured_solution.target,
             max_iterations=max_iterations,
             reparam=initial_reparam,
+            momentum_truth=momentum_truth,
+            reparam_truth=manufactured_solution.reparam,
         )

@@ -53,8 +53,8 @@ def convergence_experiment():
         # perturb momentum
         pcg = randomfunctiongen.PCG64(seed=12315123)
         rg = randomfunctiongen.Generator(pcg)
+        random_part = rg.uniform(enkf.forward_operator.MomentumSpace, -4, 4)
 
-        random_part = rg.normal(enkf.forward_operator.MomentumSpace)
         x, y = SpatialCoordinate(enkf.forward_operator.mesh)
         momentum_truth = enkf.forward_operator.momentum_function().interpolate(manufactured_solution.momentum.signal(x, y))
         initial_momentum = enkf.forward_operator.momentum_function().assign(random_part)
@@ -70,12 +70,11 @@ def convergence_experiment():
         enkf.run_filter(
             momentum=initial_momentum,
             parameterisation=initial_parameterisation,
-            reparam=initial_reparam,
             target=manufactured_solution.target,
             max_iterations=max_iterations,
+            reparam=initial_reparam,
             momentum_truth=momentum_truth,
-            reparam_truth=manufactured_solution.reparam_values,
-            param_truth=manufactured_solution.parameterisation,
+            reparam_truth=manufactured_solution.reparam,
         )
 
 
