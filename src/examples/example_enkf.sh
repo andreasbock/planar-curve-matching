@@ -5,4 +5,4 @@ export OMP_NUM_THREADS=1
 export PYTHONPATH=../..
 
 mpiexec -n $ENSEMBLE_SIZE python example_enkf.py
-python ../plot_pickles.py ../../RESULTS_EXAMPLES_ENKF
+python ../plot_pickles.py ../../RESULTS_EXAMPLES_ENKF_ESIZE=$ENSEMBLE_SIZE
