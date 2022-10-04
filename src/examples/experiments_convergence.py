@@ -54,7 +54,7 @@ def convergence_experiment():
         pcg = randomfunctiongen.PCG64(seed=12315123)
         rg = randomfunctiongen.Generator(pcg)
 
-        random_part = rg.normal(enkf.forward_operator.DGT)
+        random_part = rg.normal(enkf.forward_operator.MomentumSpace)
         x, y = SpatialCoordinate(enkf.forward_operator.mesh)
         momentum_truth = enkf.forward_operator.momentum_function().interpolate(manufactured_solution.momentum.signal(x, y))
         initial_momentum = enkf.forward_operator.momentum_function().assign(random_part)
