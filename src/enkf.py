@@ -292,7 +292,7 @@ class EnsembleKalmanFilter:
             self._logger.info(msg)
 
 
-def observation_norm(sqrt_matrix, x):  # TODO: check order of this!
+def observation_norm(sqrt_matrix, x):
     inner_norm = np.dot(sqrt_matrix, x)
     return np.sqrt(np.dot(inner_norm, inner_norm))
 
