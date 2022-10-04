@@ -11,7 +11,7 @@ plt.rc('text', usetex=True)
 plt.rc('font', family='serif')
 
 shape_marker = 'x'
-shape_linestyle = 'solid'
+shape_linestyle = 'dotted'
 shape_label = 'Reconstruction'
 
 target_marker = 'd'
