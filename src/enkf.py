@@ -44,7 +44,7 @@ class EnsembleKalmanFilter:
     ):
         self.ensemble = ensemble_object
         self.forward_operator = forward_operator
-        self._inverse_problem_params = inverse_problem_params
+        self.inverse_problem_params = inverse_problem_params
         self._logger = logger
 
         self.ensemble_size = self.ensemble.ensemble_comm.size
@@ -85,7 +85,7 @@ class EnsembleKalmanFilter:
 
         target = np.array(target)
         _target_periodic = np.append(target, [target[0, :]], axis=0)
-        self.gamma = self._inverse_problem_params.gamma_scale * np.eye(product(target.shape), dtype='float')
+        self.gamma = self.inverse_problem_params.gamma_scale * np.eye(product(target.shape), dtype='float')
         self.sqrt_gamma = scipy.linalg.sqrtm(self.gamma)
         self.sqrt_gamma_inv = np.linalg.inv(self.sqrt_gamma)
 
@@ -128,10 +128,10 @@ class EnsembleKalmanFilter:
                 cw_alpha_gamma_inv, alpha = self.compute_cw_operator(centered_shape, mismatch)
                 mismatch_local = np.ndarray.flatten(target - self.shape)
                 shape_update = np.dot(cw_alpha_gamma_inv, mismatch_local)
-                if self._inverse_problem_params.optimise_momentum:
+                if self.inverse_problem_params.optimise_momentum:
                     self._info(f"Iteration {iteration}: correcting momentum...")
                     self._correct_momentum(momentum_mean, centered_shape, shape_update)
-                if self._inverse_problem_params.optimise_parameterisation:
+                if self.inverse_problem_params.optimise_parameterisation:
                     self._info(f"Iteration {iteration}: correcting parameterisation...")
                     self._correct_reparam(reparam_mean, centered_shape, shape_update)
                 if self._rank == 0:
@@ -150,11 +150,11 @@ class EnsembleKalmanFilter:
             self._info(f"Filter stopped - maximum iteration count reached.")
 
     def predict(self):
-        if self._inverse_problem_params.optimise_parameterisation:
+        if self.inverse_problem_params.optimise_parameterisation:
             # integrate reparameterisation
             reparameterised_points = self.reparam.exponentiate(
                 self.parameterisation,
-                self._inverse_problem_params.time_steps_exponentiate,
+                self.inverse_problem_params.time_steps_exponentiate,
             )
         else:
             reparameterised_points = self.parameterisation
@@ -162,7 +162,7 @@ class EnsembleKalmanFilter:
         # evaluate parameterisation
         template_points = self.forward_operator.template.at(reparameterised_points)
 
-        if self._inverse_problem_params.optimise_momentum:
+        if self.inverse_problem_params.optimise_momentum:
             # shoot with momenta
             curve_result = self.forward_operator.shoot(self.momentum)
             # evaluate curve
@@ -178,7 +178,7 @@ class EnsembleKalmanFilter:
         return shape_mean, momentum_mean, reparam_mean
 
     def _correct_momentum(self, momentum_mean, centered_shape_flat, shape_update):
-        if self._inverse_problem_params.optimise_momentum:
+        if self.inverse_problem_params.optimise_momentum:
             self._info(f"Correcting momentum...")
             centered_momentum = self.forward_operator.momentum_function()
             centered_momentum.assign(self.momentum - momentum_mean)
@@ -198,14 +198,14 @@ class EnsembleKalmanFilter:
         self.reparam.spline.c += gain
 
     def compute_cw_operator(self, centered_shape, mismatch):
-        rhs = self._inverse_problem_params.rho * self.error_norm(mismatch)
+        rhs = self.inverse_problem_params.rho * self.error_norm(mismatch)
         self._info(f"\t rhs = {rhs}")
 
-        alpha = self._inverse_problem_params.sample_covariance_regularisation
+        alpha = self.inverse_problem_params.sample_covariance_regularisation
         cw = self.compute_cw(centered_shape)
 
         iteration = 0
-        while iteration < self._inverse_problem_params.max_iter_regularisation:
+        while iteration < self.inverse_problem_params.max_iter_regularisation:
             # compute the operator of which we need the inverse
             cw_alpha_gamma_inv = np.linalg.inv(cw + alpha * self.gamma)
 
@@ -231,10 +231,10 @@ class EnsembleKalmanFilter:
         return cov_mismatch_all / (self.ensemble_size - 1)
 
     def has_converged(self, n_err, err):
-        if n_err <= self._inverse_problem_params.tau*self._inverse_problem_params.eta:
-            self._info(f"Converged, error at noise level ({n_err} <= {self._inverse_problem_params.tau*self._inverse_problem_params.eta}).")
+        if n_err <= self.inverse_problem_params.tau*self.inverse_problem_params.eta:
+            self._info(f"Converged, error at noise level ({n_err} <= {self.inverse_problem_params.tau * self.inverse_problem_params.eta}).")
             return True
-        elif np.fabs(n_err - err) < self._inverse_problem_params.relative_tolerance:
+        elif np.fabs(n_err - err) < self.inverse_problem_params.relative_tolerance:
             self._info("No improvement in residual, terminating filter.")
             return True
         else:
@@ -246,11 +246,11 @@ class EnsembleKalmanFilter:
     def dump_parameters(self, target=None):
         if self._rank == 0:
             self._info(f"Ensemble size: {self.ensemble_size}.")
-            self._info(f"{self._inverse_problem_params}")
+            self._info(f"{self.inverse_problem_params}")
             self.forward_operator.dump_parameters()
 
             fh = open(self._logger.logger_dir / 'inverse_problem_parameters.log', 'w')
-            for key, value in asdict(self._inverse_problem_params).items():
+            for key, value in asdict(self.inverse_problem_params).items():
                 fh.write(f"{key}: {value}\n")
             fh.close()
 
