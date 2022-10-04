@@ -28,7 +28,7 @@ class ShootingParameters:
             'pc_type': 'lu'
         }
     )
-    momentum_degree: int = 1
+    momentum_degree: int = 0
     alpha: float = 1
     time_steps: int = 10
 
@@ -61,7 +61,7 @@ class GeodesicShooter:
         VDGT = VectorFunctionSpace(self.mesh, "DGT", degree=0, dim=2)  # for shape normal
         self.XW_approx = VectorFunctionSpace(self.mesh, "DG", degree=7, dim=2)
         self.VCG1 = VectorFunctionSpace(self.mesh, "CG", degree=1, dim=2)  # for coordinate fields
-        self.MomentumSpace = FunctionSpace(self.mesh, "CG", self.parameters.momentum_degree)  # for momentum signal
+        self.MomentumSpace = FunctionSpace(self.mesh, "DGT", self.parameters.momentum_degree)  # for momentum signal
         self.velocity_bcs = AxisAlignedDirichletBC(self.XW, Function(self.XW), "on_boundary")
 
         # Velocity, momentum and diffeo
