@@ -159,12 +159,16 @@ class EnsembleKalmanFilter:
         else:
             reparameterised_points = self.parameterisation
 
-        # shoot with momenta
-        curve_result = self.forward_operator.shoot(self.momentum)
-
-        # evaluate curve
+        # evaluate parameterisation
         template_points = self.forward_operator.template.at(reparameterised_points)
-        self.shape = np.array(curve_result.diffeo.at(template_points))
+
+        if self._inverse_problem_params.optimise_momentum:
+            # shoot with momenta
+            curve_result = self.forward_operator.shoot(self.momentum)
+            # evaluate curve
+            self.shape = np.array(curve_result.diffeo.at(template_points))
+        else:
+            self.shape = np.array(template_points)
 
         # compute ensemble means
         shape_mean = self._compute_shape_mean()
