@@ -98,9 +98,6 @@ def pdump(f, name):
     if not path.parent.exists():
         path.parent.mkdir()
 
-    #directory = os.path.dirname(name)
-    #os.makedirs(directory, exist_ok=True)
-
     po = open(f"{name}", "wb")
     pickle.dump(f, po)
     po.close()
@@ -159,29 +156,3 @@ def compute_facet_area(mesh):
     facetarea_solver = LinearVariationalSolver(facetarea_problem)
     facetarea_solver.solve()
     return h
-
-
-def soft_eval(diffeo, fs, points):
-    soft_diffeo = Function(fs).project(diffeo)
-    return np.array(soft_diffeo.at(points))
-
-
-def plot_norms(u_norms, p_norms, time_steps, path):
-    plt.figure()
-    plt.plot(u_norms, c='r', marker='x', label='$\| \hat{u}_{t_k} \|_V$')
-    plt.plot(p_norms, c='b', marker='o', label='$\| p_{t_k} \|$')
-    plt.xlabel(r'Iteration')
-    plt.ylabel(r'Norm')
-    plt.xticks(range(time_steps), range(1, time_steps + 1))
-    plt.grid(linestyle='dotted')
-    plt.legend(loc='best', fontsize=14)
-    plt.savefig(path / "norms.pdf", bbox_inches='tight')
-
-
-def plot_landmarks(lms: np.array, label: str, path: Path):
-    lms = np.append(lms, [lms[0, :]], axis=0)
-    plt.figure()
-    plt.plot(lms[:, 0], lms[:, 1], 'd:', label=label)
-    plt.legend(loc='best')
-    plt.savefig(str(path))
-    plt.close()
