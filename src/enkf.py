@@ -55,6 +55,7 @@ class EnsembleKalmanFilter:
         self.momentum = None
         self.parameterisation = None
         self.reparam = None
+        self.reparam_mean = None
 
         self.gamma = None
         self.sqrt_gamma = None
@@ -68,15 +69,19 @@ class EnsembleKalmanFilter:
         target: np.array,
         max_iterations: int,
         momentum_truth: Function = None,
-        param_truth: np.array = None,
-        reparam_truth: np.array = None,
+        reparam_truth: Reparameterisation = None,
     ):
         if momentum_truth is not None:
             norm_momentum_truth = np.sqrt(assemble((momentum_truth('+')) ** 2 * dS(CURVE_TAG)))
+        if reparam_truth is not None:
+            reparam_truth_eval = reparam_truth.at(parameterisation)
+            norm_reparam_truth = np.linalg.norm(reparam_truth_eval)
+
         self.dump_parameters(target)
         self.momentum = momentum
         self.parameterisation = parameterisation
         self.reparam = reparam
+        self.reparam_mean = Reparameterisation(n_cells=parameterisation.shape[0])
 
         target = np.array(target)
         _target_periodic = np.append(target, [target[0, :]], axis=0)
@@ -106,11 +111,13 @@ class EnsembleKalmanFilter:
                 #consensuses_momentum.append(self._consensus_momentum(momentum_mean))
                 #consensuses_theta.append(self._consensus_theta(theta_mean))
                 errors.append(new_error)
-                #if momentum_truth is not None:
-                #    relative_momentum_norm = np.sqrt(assemble((self.momentum('+') - momentum_mean('+')) ** 2 * dS(CURVE_TAG)))
-                #    relative_error_momentum.append(relative_momentum_norm / norm_momentum_truth)
-                #if param_truth is not None:
-                #    relative_error_param.append(np.linalg.norm(theta_mean - param_truth) / np.linalg.norm(param_truth))
+                if momentum_truth is not None:
+                    relative_momentum_norm = np.sqrt(assemble((self.momentum('+') - momentum_mean('+')) ** 2 * dS(CURVE_TAG)))
+                    relative_error_momentum.append(relative_momentum_norm / norm_momentum_truth)
+                if reparam_truth is not None:
+                    relative_error_param.append(
+                        np.linalg.norm(self.reparam_mean.at(parameterisation) - reparam_truth_eval) / norm_reparam_truth
+                    )
 
             # either we have converged or we correct
             if self.has_converged(new_error, previous_error):
@@ -273,7 +280,9 @@ class EnsembleKalmanFilter:
     def _compute_reparam_mean(self):
         _reparam_mean = np.zeros(shape=self.reparam.spline.c.shape)
         self._mpi_reduce(self.reparam.spline.c, _reparam_mean)
-        return _reparam_mean / self.ensemble_size
+        _reparam_mean /= self.ensemble_size
+        self.reparam_mean.spline.c = _reparam_mean
+        return _reparam_mean
 
     def _consensus_momentum(self, momentum_mean):
         _consensus_me = np.sqrt(np.array([assemble((self.momentum('+') - momentum_mean('+')) ** 2 * dS(CURVE_TAG))]))
