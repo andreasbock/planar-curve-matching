@@ -59,11 +59,16 @@ if __name__ == "__main__":
             values=rg.uniform(low=0, high=1, size=manufactured_solution.reparam_values.shape),
         )
 
+        if enkf.inverse_problem_params.optimise_momentum:
+            target = manufactured_solution.target
+        else:
+            target = np.array(manufactured_solution.template.at(manufactured_solution.parameterisation))
+
         # run the EKI
         enkf.run_filter(
             momentum=initial_momentum,
             parameterisation=initial_parameterisation,
-            target=manufactured_solution.target,
+            target=target,
             max_iterations=max_iterations,
             reparam=initial_reparam,
             momentum_truth=momentum_truth,
