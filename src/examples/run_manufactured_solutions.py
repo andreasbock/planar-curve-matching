@@ -49,7 +49,7 @@ if __name__ == "__main__":
                     momentum_function.interpolate(momentum.signal(*SpatialCoordinate(shooter.mesh)))
 
                     # dump the solution
-                    ManufacturedSolution(
+                    mf = ManufacturedSolution(
                         template=template,
                         target=target,
                         mesh_path=mesh_path,
@@ -57,8 +57,9 @@ if __name__ == "__main__":
                         reparam_values=values,
                         reparam=reparam,
                         parameterisation=reparameterised_points,
-                    ).dump(path, momentum_function)
-                    logger.info(f"Wrote solution to {path}.")
+                    )
+                    mf.dump(path, momentum_function)
+                    logger.info(f"Wrote solution to {path / mf.name()}.")
 
                     # move mesh via linear projection and dump pvd files
                 shooter.update_mesh()

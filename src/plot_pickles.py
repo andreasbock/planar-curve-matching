@@ -262,16 +262,15 @@ def plot_initial_data(path: Path, xs: np.array, ns: np.array = None, ms: np.arra
     if ms is not None:
         from matplotlib.ticker import FormatStrFormatter
         ax2 = ax.twinx()
-        ax2.yaxis.set_major_formatter(FormatStrFormatter('%.6f'))
+        ax2.yaxis.set_major_formatter(FormatStrFormatter('%.3e'))
         ln_ms = ax2.plot(xs, ms, label=momentum_label, linestyle=momentum_linestyle)
         if lns is not None:
             lns += ln_ms
         else:
             lns = ln_ms
 
-    labs = [l.get_label() for l in lns]
-    ax.legend(lns, labs, loc='best')
-    plt.savefig(str(path), bbox_inches='tight')
+    ax.legend(lns, [lb.get_label() for lb in lns], loc='best')
+    plt.savefig(str(path))
     plt.close()
 
 
