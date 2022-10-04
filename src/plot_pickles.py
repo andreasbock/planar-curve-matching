@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
-import utils
+import src.utils as utils
 import sys
 import os
 
@@ -10,13 +10,21 @@ from pathlib import Path
 plt.rc('text', usetex=True)
 plt.rc('font', family='serif')
 
-print_freq = 1
 shape_marker = 'x'
 shape_linestyle = 'solid'
 shape_label = 'Reconstruction'
+
 target_marker = 'd'
 target_linestyle = '-'
 target_label = 'Target'
+
+reparam_marker = '.'
+reparam_linestyle = '-'
+reparam_label = r'$\nu$'
+
+momentum_marker = 'x'
+momentum_linestyle = 'dotted'
+momentum_label = r'$\mathbf{p}$'
 
 
 def plot_consensus(res_dir: Path):
@@ -117,7 +125,7 @@ def plot_shape_means(res_dir: Path):
     while j < num_q_means:
         shape = np.append(q_means[j], [q_means[j][0, :]], axis=0)
         plt.plot(shape[:, 0], shape[:, 1])
-        j += print_freq
+        j += 1
         shapes.append(shape)
 
     plt.plot(target[:, 0], target[:, 1], marker=target_marker, linestyle=target_linestyle, label=target_label)
@@ -164,7 +172,7 @@ def plot_mismatch(res_dir: Path):
         shape.shape = (shape.size // 2, 2)
         shape = np.append(q_means[j], [q_means[j][0, :]], axis=0)
         plt.plot(shape[:, 0], shape[:, 1])
-        j += print_freq
+        j += 1
 
     target = utils.pload(res_dir / "target")
     target = np.append(target, [target[0, :]], axis=0)
@@ -201,7 +209,7 @@ def plot_theta_means(res_dir: Path):
         t_means_shape = np.array(list(map(circ, t_means[j])))
         shape = np.append(t_means_shape, [t_means_shape[0, :]], axis=0)
         plt.plot(shape[:, 0], shape[:, 1])
-        j += print_freq
+        j += 1
 
     truth_path = res_dir / "t_truth"
 
@@ -226,6 +234,45 @@ def plot_alphas(res_dir: Path):
             plt.semilogy(range(1, len(alphas) + 1), alphas)
             plt.savefig(res_dir / 'alphas_{}.pdf'.format(suffix))
             plt.clf()
+
+
+def plot_landmarks(lms: np.array, label: str, linestyle: str, marker: str, path: Path):
+    lms = np.append(lms, [lms[0, :]], axis=0)
+    plt.figure()
+    plt.plot(lms[:, 0], lms[:, 1], label=label, linestyle=linestyle, marker=marker)
+    plt.legend(loc='best')
+    plt.savefig(str(path))
+    plt.close()
+
+
+def plot_momentum(xs: np.array, ns: np.array, path: Path):
+    plt.figure()
+    plt.plot(xs, ns, label=reparam_label, linestyle=reparam_linestyle, marker=reparam_marker)
+    plt.legend(loc='best')
+    plt.savefig(str(path))
+    plt.close()
+
+
+def plot_initial_data(path: Path, xs: np.array, ns: np.array = None, ms: np.array = None):
+    fig, ax = plt.subplots()
+    lns = None
+    if ns is not None:
+        ln_ns = ax.plot(xs, ns, label=reparam_label, linestyle=reparam_linestyle)
+        lns = ln_ns
+    if ms is not None:
+        from matplotlib.ticker import FormatStrFormatter
+        ax2 = ax.twinx()
+        ax2.yaxis.set_major_formatter(FormatStrFormatter('%.6f'))
+        ln_ms = ax2.plot(xs, ms, label=momentum_label, linestyle=momentum_linestyle)
+        if lns is not None:
+            lns += ln_ms
+        else:
+            lns = ln_ms
+
+    labs = [l.get_label() for l in lns]
+    ax.legend(lns, labs, loc='best')
+    plt.savefig(str(path), bbox_inches='tight')
+    plt.close()
 
 
 if __name__ == "__main__":

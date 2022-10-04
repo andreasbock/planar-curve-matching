@@ -6,9 +6,9 @@ from typing import List, Any
 from firedrake import *
 import numpy as np
 
-from src.curves import Curve
 import src.utils as utils
-
+from src.plot_pickles import target_marker, target_linestyle, plot_landmarks, plot_initial_data
+from src.curves import Curve, Reparameterisation
 
 __all__ = [
     "MANUFACTURED_SOLUTIONS_MOMENTUM",
@@ -42,6 +42,7 @@ class ManufacturedSolution:
     momentum: Momentum
     parameterisation: Parameterisation
     reparam_values: np.array
+    reparam: Reparameterisation
 
     _template_file_name: str = "template"
     _curve_name: str = "curve_name"
@@ -50,11 +51,12 @@ class ManufacturedSolution:
     _momentum_name: str = "momentum"
     _parameterisation_name: str = "parameterisation"
     _reparam_values_name: str = "reparam_values"
+    _reparam_name: str = "reparam_coefs"
 
     def name(self) -> str:
         return f"{self.mesh_path.stem}_{self.momentum.name}_LANDMARKS={len(self.parameterisation)}"
 
-    def dump(self, base_path: Path) -> None:
+    def dump(self, base_path: Path, momentum_function=None) -> None:
         path = base_path / self.name()
         if not path.parent.exists():
             path.parent.mkdir()
@@ -66,7 +68,20 @@ class ManufacturedSolution:
         utils.pdump(self.momentum, path / self._momentum_name)
         utils.pdump(self.parameterisation, path / self._parameterisation_name)
         utils.pdump(self.reparam_values, path / self._reparam_values_name)
-        utils.plot_landmarks(self.target, 'Target', path / 'target.pdf')
+        utils.pdump(self.reparam.spline.c, path / self._reparam_name)
+
+        plot_landmarks(
+            self.target,
+            label='Target',
+            marker=target_marker,
+            linestyle=target_linestyle,
+            path=path / 'target.pdf',
+        )
+
+        xs = utils.uniform_parameterisation(100)
+        ns = self.reparam.at(xs)
+        ms = momentum_function.at(self.template.at(xs)) if momentum_function is not None else None
+        plot_initial_data(path / 'reparam_and_momentum.pdf', xs, ns, ms)
 
     @classmethod
     def load(cls, base_path: Path, communicator=COMM_WORLD) -> "ManufacturedSolution":

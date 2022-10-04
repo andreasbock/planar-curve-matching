@@ -1,6 +1,6 @@
 import numpy as np
 
-from firedrake import File
+from firedrake import File, SpatialCoordinate
 
 from src import utils
 from src.curves import CURVES, Reparameterisation
@@ -45,6 +45,8 @@ if __name__ == "__main__":
 
                     curve_result = shooter.shoot(momentum)
                     target = np.array(curve_result.diffeo.at(template_points))
+                    momentum_function = shooter.momentum_function()
+                    momentum_function.interpolate(momentum.signal(*SpatialCoordinate(shooter.mesh)))
 
                     # dump the solution
                     ManufacturedSolution(
@@ -53,8 +55,9 @@ if __name__ == "__main__":
                         mesh_path=mesh_path,
                         momentum=momentum,
                         reparam_values=values,
+                        reparam=reparam,
                         parameterisation=reparameterised_points,
-                    ).dump(path)
+                    ).dump(path, momentum_function)
                     logger.info(f"Wrote solution to {path}.")
 
                     # move mesh via linear projection and dump pvd files
