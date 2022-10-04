@@ -6,8 +6,11 @@ if __name__ == "__main__":
     # parameters
     max_iterations = 10
     shooting_parameters = ShootingParameters()
-    process_per_ensemble_member = 1
     inverse_problem_parameters = InverseProblemParameters()
+    inverse_problem_parameters.optimise_momentum = True
+    inverse_problem_parameters.optimise_parameterisation = True
+
+    process_per_ensemble_member = 1
     ensemble_object = Ensemble(COMM_WORLD, M=process_per_ensemble_member)
 
     EXAMPLES_ENKF_PATH = utils.project_root() / f"RESULTS_EXAMPLES_ENKF_ESIZE={ensemble_object.ensemble_comm.size}"
@@ -56,7 +59,7 @@ if __name__ == "__main__":
         initial_parameterisation = manufactured_solution.parameterisation
         initial_reparam = Reparameterisation(
             n_cells=len(manufactured_solution.parameterisation),
-            values=rg.uniform(low=0, high=1, size=manufactured_solution.reparam_values.shape),
+            values=rg.uniform(low=-2, high=2, size=manufactured_solution.reparam_values.shape),
         )
 
         if enkf.inverse_problem_params.optimise_momentum:
