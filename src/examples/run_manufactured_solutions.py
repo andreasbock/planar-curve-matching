@@ -46,7 +46,8 @@ if __name__ == "__main__":
                     curve_result = shooter.shoot(momentum)
                     target = np.array(curve_result.diffeo.at(template_points))
                     momentum_function = shooter.momentum_function()
-                    momentum_function.interpolate(momentum.signal(*SpatialCoordinate(shooter.mesh)))
+                    momentum_expr = momentum.signal(*SpatialCoordinate(shooter.mesh))
+                    momentum_function.interpolate(momentum_expr)
 
                     # dump the solution
                     mf = ManufacturedSolution(
@@ -58,7 +59,7 @@ if __name__ == "__main__":
                         reparam=reparam,
                         parameterisation=reparameterised_points,
                     )
-                    mf.dump(path, momentum_function)
+                    mf.dump(path)
                     logger.info(f"Wrote solution to {path / mf.name()}.")
 
                     # move mesh via linear projection and dump pvd files

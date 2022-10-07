@@ -255,10 +255,12 @@ def plot_momentum(xs: np.array, ns: np.array, path: Path):
 
 def plot_initial_data(path: Path, xs: np.array, ns: np.array = None, ms: np.array = None):
     fig, ax = plt.subplots()
+    ax.set_xlabel(r'$\theta$')
     lns = None
     if ns is not None:
         ln_ns = ax.plot(xs, ns, label=reparam_label, linestyle=reparam_linestyle)
         lns = ln_ns
+        ax.set_ylabel(r'$\nu(\theta)$')
     if ms is not None:
         from matplotlib.ticker import FormatStrFormatter
         ax2 = ax.twinx()
@@ -269,7 +271,7 @@ def plot_initial_data(path: Path, xs: np.array, ns: np.array = None, ms: np.arra
         else:
             lns = ln_ms
 
-    ax.legend(lns, [lb.get_label() for lb in lns], loc='best')
+    #ax.legend(lns, [lb.get_label() for lb in lns], loc='best')
     plt.savefig(str(path))
     plt.close()
 
