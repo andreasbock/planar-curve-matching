@@ -178,14 +178,12 @@ class EnsembleKalmanFilter:
         return shape_mean, momentum_mean, reparam_mean
 
     def _correct_momentum(self, momentum_mean, centered_shape_flat, shape_update):
-        if self.inverse_problem_params.optimise_momentum:
-            self._info(f"Correcting momentum...")
-            centered_momentum = self.forward_operator.momentum_function()
-            centered_momentum.assign(self.momentum - momentum_mean)
-            local_C_pw = np.outer(centered_momentum.dat.data, centered_shape_flat)
-            C_pw = np.empty(shape=local_C_pw.shape)
-            self._mpi_reduce(local_C_pw, C_pw)
-            self.momentum.dat.data[:] += np.dot(C_pw, shape_update)
+        centered_momentum = self.forward_operator.momentum_function()
+        centered_momentum.assign(self.momentum - momentum_mean)
+        local_C_pw = np.outer(centered_momentum.dat.data, centered_shape_flat)
+        C_pw = np.empty(shape=local_C_pw.shape)
+        self._mpi_reduce(local_C_pw, C_pw)
+        self.momentum.dat.data[:] += np.dot(C_pw, shape_update)
 
     def _correct_reparam(self, reparam_mean, centered_shape, shape_update):
         centered_param = self.reparam.spline.c - reparam_mean
