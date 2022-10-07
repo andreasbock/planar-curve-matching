@@ -93,7 +93,6 @@ class ManufacturedSolution:
             template=Curve(
                 name=utils.pload(base_path / cls._curve_name),
                 points=utils.pload(base_path / cls._template_file_name),
-                communicator=communicator,
             ),
             target=utils.pload(base_path / cls._target_name),
             mesh_path=utils.pload(base_path / cls._mesh_name),
