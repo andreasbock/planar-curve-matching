@@ -21,7 +21,7 @@ if __name__ == "__main__":
     shooting_parameters.momentum_degree = 1
     time_steps_reparam = 10
 
-    for template in CURVES():
+    for template in CURVES:
         for resolution in MESH_RESOLUTIONS:
             logger.info(f"Generating mesh for curve: '{template.name}' with resolution: h={resolution}.")
 
