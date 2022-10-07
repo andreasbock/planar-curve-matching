@@ -35,34 +35,35 @@ class Curve:
         self.name = name
         self.points = points
         n_cells, dim = self.points.shape
-        periodic_mesh = PeriodicIntervalMesh(n_cells, 2*np.pi, comm=communicator)
-        V = VectorFunctionSpace(periodic_mesh, "CG", 1, dim=dim)
-        self.point_function = Function(V, val=self.points)
+        _points = np.vstack([points, points[0]])
+        theta = 2*np.pi*np.linspace(0, 1, n_cells + 1)
+        self.spline = CubicSpline(theta, _points, bc_type='periodic')
 
     @classmethod
     def make(cls, name: str, points: np.array) -> "Curve":
         return Curve(name, points)
 
     def at(self, param: np.array) -> np.array:
+        return self.spline(param)
+
+    def fat(self, param: np.array) -> np.array:
         return self.point_function.at(param)
 
 
-def CURVES(communicator=COMM_WORLD) -> List[Curve]:
-    circle = Curve(
+ALL_CURVES = [
+    Curve(
         name="circle",
         points=5 * np.array(
             [
                 (np.cos(t), np.sin(t)) for t in np.linspace(0, 2*np.pi, num=25)
             ][:-1]
         ),
-        communicator=communicator,
-    )
-    small_triangle = Curve(
+    ),
+    Curve(
         name="small_triangle",
         points=np.array([[-4, -4], [6, 2], [4, 4]]),
-        communicator=communicator,
-    )
-    random_shape = Curve(
+    ),
+    Curve(
         name="random_shape",
         points=np.array(
             [
@@ -76,6 +77,6 @@ def CURVES(communicator=COMM_WORLD) -> List[Curve]:
                 [0, -2]
             ]
         ),
-        communicator=communicator,
-    )
-    return [circle]
+    ),
+]
+CURVES = [ALL_CURVES[0]]
