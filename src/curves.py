@@ -28,10 +28,7 @@ class Reparameterisation:
 
 
 class Curve:
-    def __init__(self, name: str, points: np.array, communicator=COMM_WORLD):
-        if len(points) == 0:
-            raise Exception("Empty list of points do not define a `Curve`.")
-
+    def __init__(self, name: str, points: np.array):
         self.name = name
         self.points = points
         n_cells, dim = self.points.shape
@@ -45,9 +42,6 @@ class Curve:
 
     def at(self, param: np.array) -> np.array:
         return self.spline(param)
-
-    def fat(self, param: np.array) -> np.array:
-        return self.point_function.at(param)
 
 
 ALL_CURVES = [
