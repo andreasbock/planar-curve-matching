@@ -65,7 +65,7 @@ class GeodesicShooter:
         self.velocity_bcs = AxisAlignedDirichletBC(self.XW, Function(self.XW), "on_boundary")
 
         # Velocity, momentum and diffeo
-        self.diffeo = None
+        self.diffeo = Function(self.XW)
         self.u = Function(self.XW)
         self.momentum = None
 
@@ -74,9 +74,10 @@ class GeodesicShooter:
         self.h_inv = inv(utils.compute_facet_area(self.mesh))
         self.n = assemble(self.h_inv('+') * dS(CURVE_TAG))  # reference interval has measure 1
         self.shape_normal = utils.shape_normal(self.mesh, VDGT)
+        self.orig_coords = project(SpatialCoordinate(self.mesh), self.XW)
 
     def shoot(self, momentum: Momentum) -> CurveResult:
-        self.diffeo = project(SpatialCoordinate(self.mesh), self.XW)
+        self.diffeo.assign(self.orig_coords)
 
         dt = Constant(1 / self.parameters.time_steps)
         if isinstance(momentum, Function):
