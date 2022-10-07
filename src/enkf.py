@@ -128,10 +128,10 @@ class EnsembleKalmanFilter:
                 cw_alpha_gamma_inv, alpha = self.compute_cw_operator(centered_shape, mismatch)
                 mismatch_local = np.ndarray.flatten(target - self.shape)
                 shape_update = np.dot(cw_alpha_gamma_inv, mismatch_local)
-                if self.inverse_problem_params.optimise_momentum:
+                if self.inverse_problem_params.optimise_momentum and iteration % 2 == 0:
                     self._info(f"Iteration {iteration}: correcting momentum...")
                     self._correct_momentum(momentum_mean, centered_shape, shape_update)
-                if self.inverse_problem_params.optimise_parameterisation:
+                elif self.inverse_problem_params.optimise_parameterisation:
                     self._info(f"Iteration {iteration}: correcting parameterisation...")
                     self._correct_reparam(reparam_mean, centered_shape, shape_update)
                 if self._rank == 0:
