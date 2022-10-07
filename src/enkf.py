@@ -91,7 +91,7 @@ class EnsembleKalmanFilter:
 
         # initialise containers for logging
         errors, alphas = [], []
-        consensuses_momentum, consensuses_theta = [], []
+        consensuses_momentum, consensuses_reparam = [], []
         relative_error_momentum, relative_error_param = [], []
 
         iteration = 0
@@ -102,14 +102,15 @@ class EnsembleKalmanFilter:
             mismatch = np.ndarray.flatten(target - shape_mean)
             new_error = self.error_norm(mismatch)
             self._info(f"Iteration {iteration}: Error norm: {new_error}")
-
+            consensus_momentum = self._consensus_momentum(momentum_mean)
+            consensus_reparam = 0# self._consensus_reparam(reparam_mean)
             # log everything
             if self._rank == 0:
                 utils.pdump(shape_mean, self._logger.logger_dir / f"q_mean_iter={iteration}")
                 utils.pdump(reparam_mean, self._logger.logger_dir / f"t_mean_iter={iteration}")
                 utils.pdump(mismatch, self._logger.logger_dir / f"mismatch_iter={iteration}")
-                #consensuses_momentum.append(self._consensus_momentum(momentum_mean))
-                #consensuses_theta.append(self._consensus_theta(theta_mean))
+                consensuses_momentum.append(consensus_momentum)
+                consensuses_reparam.append(consensus_reparam)
                 errors.append(new_error)
                 if momentum_truth is not None:
                     relative_momentum_norm = np.sqrt(assemble((self.momentum('+') - momentum_mean('+')) ** 2 * dS(CURVE_TAG)))
@@ -118,6 +119,7 @@ class EnsembleKalmanFilter:
                     relative_error_param.append(
                         np.linalg.norm(self.reparam_mean.at(parameterisation) - reparam_truth_eval) / norm_reparam_truth
                     )
+            self.ensemble.ensemble_comm.Barrier()
 
             # either we have converged or we correct
             if self.has_converged(new_error, previous_error):
@@ -145,7 +147,7 @@ class EnsembleKalmanFilter:
             utils.pdump(relative_error_param, self._logger.logger_dir / "relative_error_param")
             utils.pdump(alphas, self._logger.logger_dir / "alphas")
             utils.pdump(consensuses_momentum, self._logger.logger_dir / "consensuses_momentum")
-            utils.pdump(consensuses_theta, self._logger.logger_dir / "consensuses_theta")
+            utils.pdump(consensuses_reparam, self._logger.logger_dir / "consensuses_theta")
         if iteration > max_iterations:
             self._info(f"Filter stopped - maximum iteration count reached.")
 
@@ -292,7 +294,7 @@ class EnsembleKalmanFilter:
         self._mpi_reduce(_consensus_me, _consensus)
         return _consensus[0] / self.ensemble_size
 
-    def _consensus_theta(self, theta_mean):
+    def _consensus_reparam(self, theta_mean):
         _consensus_me = np.linalg.norm(self.parameterisation - theta_mean)
         _consensus = np.zeros(shape=_consensus_me.shape)
         self._mpi_reduce(_consensus_me, _consensus)
