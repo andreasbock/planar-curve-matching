@@ -84,7 +84,7 @@ class ManufacturedSolution:
         plot_initial_data(path / 'reparam_and_momentum.pdf', xs, ns, ms)
 
     @classmethod
-    def load(cls, base_path: Path, communicator=COMM_WORLD) -> "ManufacturedSolution":
+    def load(cls, base_path: Path) -> "ManufacturedSolution":
         parameterisation = utils.pload(base_path / cls._parameterisation_name)
         reparam = Reparameterisation(n_cells=len(parameterisation))
         reparam.spline.c = utils.pload(base_path / cls._reparam_name)
@@ -108,7 +108,6 @@ def get_solutions(
     momentum_names: List[str] = None,
     resolutions: List[float] = None,
     landmarks: List[int] = None,
-    communicator=COMM_WORLD,
 ) -> List[ManufacturedSolution]:
     momenta = momentum_names if momentum_names is not None else MANUFACTURED_SOLUTIONS_MOMENTUM_NAMES
     resolutions = resolutions if resolutions is not None else MESH_RESOLUTIONS
@@ -116,7 +115,7 @@ def get_solutions(
 
     solutions = []
     for momentum, shape, res, lms in itertools.product(momenta, shapes, resolutions, landmarks):
-        solution = get_solution(momentum, shape, res, lms, communicator)
+        solution = get_solution(momentum, shape, res, lms)
         solutions.append(solution)
     return solutions
 
@@ -126,11 +125,10 @@ def get_solution(
     shape_name: str,
     resolution: float,
     landmarks: int,
-    communicator=COMM_WORLD,
 ) -> ManufacturedSolution:
     name = f"{shape_name}_{momentum_name}"
     solution_path = MANUFACTURED_SOLUTIONS_PATH / f"h={resolution}" / name / f"{name}_LANDMARKS={landmarks}"
-    return ManufacturedSolution.load(solution_path, communicator)
+    return ManufacturedSolution.load(solution_path)
 
 
 def _expand(x, y):

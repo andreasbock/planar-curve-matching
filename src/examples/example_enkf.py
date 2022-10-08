@@ -21,7 +21,6 @@ if __name__ == "__main__":
         momentum_names=['contract', 'squeeze', 'teardrop'],
         resolutions=[0.5],
         landmarks=[20],
-        communicator=ensemble_object.comm,
     )
 
     # run EKI over all manufactured solutions
