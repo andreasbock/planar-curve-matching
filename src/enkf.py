@@ -84,7 +84,6 @@ class EnsembleKalmanFilter:
         self.reparam_mean = Reparameterisation(n_cells=parameterisation.shape[0])
 
         target = np.array(target)
-        _target_periodic = np.append(target, [target[0, :]], axis=0)
         self.gamma = self.inverse_problem_params.gamma_scale * np.eye(product(target.shape), dtype='float')
         self.sqrt_gamma = scipy.linalg.sqrtm(self.gamma)
         self.sqrt_gamma_inv = np.linalg.inv(self.sqrt_gamma)
