@@ -61,6 +61,9 @@ class EnsembleKalmanFilter:
         self.sqrt_gamma = None
         self.sqrt_gamma_inv = None
 
+        self.mean_normaliser = Constant(1 / self.ensemble_size)
+        self.cov_normaliser = Constant(1 / (self.ensemble_size - 1))
+
     def run_filter(
         self,
         momentum: Function,
@@ -184,6 +187,7 @@ class EnsembleKalmanFilter:
         local_C_pw = np.outer(centered_momentum.dat.data, centered_shape_flat)
         C_pw = np.empty(shape=local_C_pw.shape)
         self._mpi_reduce(local_C_pw, C_pw)
+        C_pw /= self.ensemble_size - 1
         self.momentum.dat.data[:] += np.dot(C_pw, shape_update)
 
     def _correct_reparam(self, reparam_mean, centered_shape, shape_update):
@@ -259,15 +263,6 @@ class EnsembleKalmanFilter:
     def _mpi_reduce(self, f, reduced):
         self.ensemble.ensemble_comm.Allreduce(f, reduced, op=MPI.SUM)
 
-    def _clear_cache(self):
-        if self._rank == 0:
-            fd_cache = os.environ['VIRTUAL_ENV'] + '/.cache/'
-            for subdir in ['pyop2', 'tsfc']:
-                cache = fd_cache + subdir
-                if os.path.exists(cache) and os.path.isdir(cache):
-                    shutil.rmtree(cache)
-        self.ensemble.ensemble_comm.Barrier()
-
     def _compute_shape_mean(self):
         shape_mean = np.empty(shape=self.shape.shape)
         self._mpi_reduce(self.shape, shape_mean)
@@ -277,7 +272,7 @@ class EnsembleKalmanFilter:
     def _compute_momentum_mean(self):
         momentum_mean = self.forward_operator.momentum_function()
         self.ensemble.allreduce(self.momentum, momentum_mean)
-        momentum_mean.assign(momentum_mean * Constant(1 / self.ensemble_size))
+        momentum_mean.assign(momentum_mean * self.mean_normaliser)
         return momentum_mean
 
     def _compute_reparam_mean(self):
