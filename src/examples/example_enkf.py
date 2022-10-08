@@ -28,7 +28,7 @@ if __name__ == "__main__":
     for manufactured_solution in manufactured_solutions:
         # set up logging
         logger = utils.Logger(
-            EXAMPLES_ENKF_PATH / manufactured_solution.name() / "example_enkf.log", ensemble_object.comm
+            EXAMPLES_ENKF_PATH / manufactured_solution.name() / "example_enkf.log", ensemble_object.ensemble_comm
         )
 
         # set up EnKF
