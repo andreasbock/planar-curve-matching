@@ -105,7 +105,7 @@ class EnsembleKalmanFilter:
             new_error = self.error_norm(mismatch)
             self._info(f"Iteration {iteration}: Error norm: {new_error}")
             consensus_momentum = self._consensus_momentum(momentum_mean)
-            consensus_reparam = 0# self._consensus_reparam(reparam_mean)
+            consensus_reparam = self._consensus_reparam(reparam_mean)
             # log everything
             if self._rank == 0:
                 utils.pdump(shape_mean, self._logger.logger_dir / f"q_mean_iter={iteration}")
