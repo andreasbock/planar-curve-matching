@@ -288,8 +288,8 @@ class EnsembleKalmanFilter:
         self._mpi_reduce(_consensus_me, _consensus)
         return _consensus[0] / self.ensemble_size
 
-    def _consensus_reparam(self, theta_mean):
-        _consensus_me = np.linalg.norm(self.parameterisation - theta_mean)
+    def _consensus_reparam(self, reparam_mean):
+        _consensus_me = np.linalg.norm(self.reparam.spline.c - reparam_mean)
         _consensus = np.zeros(shape=_consensus_me.shape)
         self._mpi_reduce(_consensus_me, _consensus)
         return _consensus / self.ensemble_size
