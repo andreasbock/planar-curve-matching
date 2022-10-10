@@ -67,7 +67,7 @@ class GeodesicShooter:
         # Velocity, momentum and diffeo
         self.diffeo = Function(self.XW)
         self.u = Function(self.XW)
-        self.momentum = None
+        self.momentum = self.momentum_function()
 
         # Functions we'll need for the source term/visualisation
         self.shape_function = utils.shape_function(self.mesh, CURVE_TAG)
@@ -81,7 +81,7 @@ class GeodesicShooter:
 
         dt = Constant(1 / self.parameters.time_steps)
         if isinstance(momentum, Function):
-            self.momentum = momentum
+            self.momentum.assign(momentum)
         else:
             # mostly for manufactured solutions
             x, y = SpatialCoordinate(self.mesh)
