@@ -224,16 +224,15 @@ def plot_theta_means(res_dir: Path):
 
 
 def plot_alphas(res_dir: Path):
-    for suffix, tex in [('momentum', '\\mathbf{P}'), ('thetas', '\\mathbf{\\Theta}')]:
-        if os.path.isfile(res_dir / 'alphas'):
-            print(r'Plotting $\alphas_{}$...'.format(suffix))
-            alphas = utils.pload(res_dir / 'alphas')
-            plt.grid()
-            plt.xlabel('Iteration $n$')
-            plt.ylabel(r'$\ln(\alpha_n^{})$'.format(tex))
-            plt.semilogy(range(1, len(alphas) + 1), alphas)
-            plt.savefig(res_dir / 'alphas_{}.pdf'.format(suffix))
-            plt.clf()
+    if os.path.isfile(res_dir / 'alphas'):
+        print(r'Plotting $\alphas$...')
+        alphas = utils.pload(res_dir / 'alphas')
+        plt.grid()
+        plt.xlabel('Iteration $n$')
+        plt.ylabel(r'$\ln(\alpha_n)$')
+        plt.semilogy(range(1, len(alphas) + 1), alphas)
+        plt.savefig(res_dir / 'alphas.pdf')
+        plt.clf()
 
 
 def plot_landmarks(lms: np.array, label: str, linestyle: str, marker: str, path: Path):
@@ -286,3 +285,4 @@ if __name__ == "__main__":
         plot_shape_means(p)
         plot_theta_means(p)
         plot_mismatch(p)
+        plot_alphas(p)
