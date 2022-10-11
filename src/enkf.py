@@ -155,6 +155,7 @@ class EnsembleKalmanFilter:
             self._info(f"Filter stopped - maximum iteration count reached.")
 
     def predict(self):
+        self.ensemble.ensemble_comm.Barrier()
         if self.inverse_problem_params.optimise_parameterisation:
             # integrate reparameterisation
             reparameterised_points = self.reparam.exponentiate(
@@ -183,6 +184,7 @@ class EnsembleKalmanFilter:
         return shape_mean, momentum_mean, reparam_mean
 
     def _correct_momentum(self, momentum_mean, centered_shape_flat, shape_update):
+        self.ensemble.ensemble_comm.Barrier()
         centered_momentum = self.forward_operator.momentum_function()
         centered_momentum.assign(self.momentum - momentum_mean)
         local_C_pw = np.outer(centered_momentum.dat.data, centered_shape_flat)
