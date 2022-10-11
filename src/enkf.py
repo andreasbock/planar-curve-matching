@@ -63,6 +63,7 @@ class EnsembleKalmanFilter:
 
         self.mean_normaliser = Constant(1 / self.ensemble_size)
         self.cov_normaliser = Constant(1 / (self.ensemble_size - 1))
+        self.momentum_mean = self.forward_operator.momentum_function()
 
     def run_filter(
         self,
@@ -270,10 +271,9 @@ class EnsembleKalmanFilter:
         return shape_mean
 
     def _compute_momentum_mean(self):
-        momentum_mean = self.forward_operator.momentum_function()
-        self.ensemble.allreduce(self.momentum, momentum_mean)
-        momentum_mean.assign(momentum_mean * self.mean_normaliser)
-        return momentum_mean
+        self.ensemble.allreduce(self.momentum, self.momentum_mean)
+        self.momentum_mean.assign(self.momentum_mean * self.mean_normaliser)
+        return self.momentum_mean
 
     def _compute_reparam_mean(self):
         _reparam_mean = np.zeros(shape=self.reparam.spline.c.shape)
