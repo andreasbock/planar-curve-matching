@@ -114,7 +114,6 @@ class EnsembleKalmanFilter:
                 utils.pdump(mismatch, self._logger.logger_dir / f"mismatch_iter={iteration}")
                 consensuses_momentum.append(consensus_momentum)
                 consensuses_reparam.append(consensus_reparam)
-                errors.append(new_error)
                 if momentum_truth is not None:
                     relative_momentum_norm = np.sqrt(assemble((self.momentum('+') - momentum_mean('+')) ** 2 * dS(CURVE_TAG)))
                     relative_error_momentum.append(relative_momentum_norm / norm_momentum_truth)
@@ -295,10 +294,10 @@ class EnsembleKalmanFilter:
         return _consensus[0] / self.ensemble_size
 
     def _consensus_reparam(self, reparam_mean):
-        _consensus_me = np.linalg.norm(self.reparam.spline.c - reparam_mean)
+        _consensus_me = np.array([np.linalg.norm(self.reparam.spline.c - reparam_mean)])
         _consensus = np.zeros(shape=_consensus_me.shape)
         self._mpi_reduce(_consensus_me, _consensus)
-        return _consensus / self.ensemble_size
+        return _consensus[0] / self.ensemble_size
 
     def _info(self, msg):
         if self._rank == 0:
