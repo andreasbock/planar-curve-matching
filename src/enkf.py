@@ -136,12 +136,13 @@ class EnsembleKalmanFilter:
                 if self.inverse_problem_params.optimise_momentum:
                     self._info(f"Iteration {iteration}: correcting momentum...")
                     self._correct_momentum(momentum_mean, centered_shape, shape_update)
-                elif self.inverse_problem_params.optimise_parameterisation:
+                if self.inverse_problem_params.optimise_parameterisation:
                     self._info(f"Iteration {iteration}: correcting parameterisation...")
                     self._correct_reparam(reparam_mean, centered_shape, shape_update)
                 if self._rank == 0:
                     alphas.append(alpha)
 
+            errors.append(new_error)
             previous_error = new_error
             iteration += 1
         if self._rank == 0:
@@ -151,6 +152,8 @@ class EnsembleKalmanFilter:
             utils.pdump(alphas, self._logger.logger_dir / "alphas")
             utils.pdump(consensuses_momentum, self._logger.logger_dir / "consensuses_momentum")
             utils.pdump(consensuses_reparam, self._logger.logger_dir / "consensuses_theta")
+            utils.pdump(self.momentum_mean.dat.data, self._logger.logger_dir / "momentum_mean_converged")
+            utils.pdump(reparam_mean, self._logger.logger_dir / "reparam_mean_converged")
         if iteration > max_iterations:
             self._info(f"Filter stopped - maximum iteration count reached.")
 
@@ -194,9 +197,10 @@ class EnsembleKalmanFilter:
         self.momentum.dat.data[:] += np.dot(C_pw, shape_update)
 
     def _correct_reparam(self, reparam_mean, centered_shape, shape_update):
+        self.ensemble.ensemble_comm.Barrier()
         centered_param = self.reparam.spline.c - reparam_mean
         c_rq = np.outer(centered_param, centered_shape)
-        c_rq_all = np.zeros(shape=c_rq.shape)
+        c_rq_all = np.empty(shape=c_rq.shape)
         self._mpi_reduce(c_rq, c_rq_all)
         c_rq_all /= self.ensemble_size - 1
         gain = np.dot(c_rq_all, shape_update)
