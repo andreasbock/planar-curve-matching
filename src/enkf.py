@@ -25,6 +25,7 @@ class InverseProblemParameters:
     eta: float = 1e-03  # noise limit, equals ||\Lambda^{0.5}(q1-G(.))||
     relative_tolerance: float = 1e-05  # relative error to previous iteration
     sample_covariance_regularisation: float = 1  # alpha_0 regularisation parameter
+    dynamic_regularisation: bool = True
     max_iter_regularisation: int = 40
     optimise_momentum: bool = True
     optimise_parameterisation: bool = True
@@ -222,7 +223,7 @@ class EnsembleKalmanFilter:
             lhs = alpha * self.error_norm(np.dot(cw_alpha_gamma_inv, mismatch))
             self._info(f"\t lhs = {lhs}")
 
-            if lhs >= rhs:
+            if lhs >= rhs or not self.inverse_problem_params.dynamic_regularisation:
                 self._info(f"\t alpha = {alpha}")
                 return cw_alpha_gamma_inv, alpha
             alpha *= 2
