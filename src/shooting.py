@@ -32,6 +32,7 @@ class ShootingParameters:
     alpha: float = 1
     time_steps: int = 10
 
+
 @dataclass
 class CurveResult:
     diffeo: firedrake.Function
