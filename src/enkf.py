@@ -153,7 +153,7 @@ class EnsembleKalmanFilter:
             utils.pdump(consensuses_momentum, self._logger.logger_dir / "consensuses_momentum")
             utils.pdump(consensuses_reparam, self._logger.logger_dir / "consensuses_theta")
             utils.pdump(self.momentum_mean.dat.data, self._logger.logger_dir / "momentum_mean_converged")
-            utils.pdump(reparam_mean, self._logger.logger_dir / "reparam_mean_converged")
+            utils.pdump(self.reparam_mean, self._logger.logger_dir / "reparam_mean_converged")
         if iteration > max_iterations:
             self._info(f"Filter stopped - maximum iteration count reached.")
 

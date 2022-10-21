@@ -268,12 +268,19 @@ def plot_initial_data(path: Path, xs: np.array, ns: np.array = None, ms: np.arra
 
 if __name__ == "__main__":
     res_dir = Path(sys.argv[1])
-    for p in res_dir.glob('*'):
+    for p in res_dir.glob('*/*'):
+
         if not p.is_dir():
             continue
+
+        if (p / "shape_means.pdf").exists():
+            print(f"Skipping {p}, already plotted these.")
+            continue
+
         plot_consensus(p)
         plot_errors(p)
         plot_shape_means(p)
         #plot_theta_means(p)
         plot_mismatch(p)
         plot_alphas(p)
+        open(p / "PLOTTED", "a")
