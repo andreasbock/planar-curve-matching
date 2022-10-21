@@ -24,8 +24,8 @@ class InverseProblemParameters:
     gamma_scale: float = 1  # observation variance
     eta: float = 1e-03  # noise limit, equals ||\Lambda^{0.5}(q1-G(.))||
     relative_tolerance: float = 1e-05  # relative error to previous iteration
-    sample_covariance_regularisation: float = 1  # alpha_0 regularisation parameter
-    dynamic_regularisation: bool = True
+    sample_covariance_regularisation: float = 0.01  # alpha_0 regularisation parameter
+    dynamic_regularisation: bool = False
     max_iter_regularisation: int = 40
     optimise_momentum: bool = True
     optimise_parameterisation: bool = True
