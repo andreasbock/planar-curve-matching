@@ -15,7 +15,7 @@ shape_linestyle = 'dotted'
 shape_label = 'Reconstruction'
 
 target_marker = 'd'
-target_linestyle = '-'
+target_linestyle = '-.'
 target_label = 'Target'
 
 reparam_marker = '.'
@@ -28,23 +28,27 @@ momentum_label = r'$\mathbf{p}$'
 
 
 def plot_consensus(res_dir: Path):
-    vnames = {'momentum': r'$\sum_{i=1}^{N_e}\frac{1}{N_e}\|\bar{p}-p_0^i\|_{L^2}$',
-              'theta': r'$\sum_{i=1}^{N_e}\frac{1}{N_e}\|\bar{\theta}-\theta^i\|_{L^2}$'}
+    vnames = {'momentum': 'Consensus (momentum)',
+              'theta': 'Consensus (parameterisation)'}
 
-    for var in ['momentum', 'theta']:
+    def _plot_consensus(var):
         if os.path.isfile(res_dir / 'consensuses_{}'.format(var)):
             consensuses = utils.pload(res_dir / 'consensuses_{}'.format(var))
-
-            # plot pickles
             print(f"Plotting {var} consensuses...")
             ax = plt.subplot(111)
             ax.set_xlim(left=1, right=len(consensuses))
             plt.grid()
-            plt.xlabel('Iteration $n$')
+            plt.xlabel('Iteration')
             plt.ylabel(vnames[var])
             plt.plot(range(1, len(consensuses) + 1), consensuses)
             plt.savefig(res_dir / 'consensuses_{}.pdf'.format(var))
             plt.clf()
+            return consensuses
+
+    cm = _plot_consensus('momentum')
+    ct = _plot_consensus('theta')
+
+    return cm, ct
 
 
 def plot_errors(res_dir: Path):
@@ -85,6 +89,8 @@ def plot_errors(res_dir: Path):
     plt.legend(loc='best')
     plt.savefig(res_dir / 'relative_error.pdf')
     plt.clf()
+
+    return errors_momentum, errors_reparam
 
 
 def plot_shape_means(res_dir: Path):
@@ -136,6 +142,8 @@ def plot_shape_means(res_dir: Path):
         plt.savefig(res_dir / f"shape_iter={iteration}.pdf")
         plt.close()
 
+    return shapes[-1], target
+
 
 def plot_mismatch(res_dir: Path):
     # count pickles
@@ -174,7 +182,6 @@ def plot_mismatch(res_dir: Path):
 
 
 def plot_theta_means(res_dir: Path):
-
     # count pickles
     num_t_means = 0
     prefix = "t_mean_iter="
@@ -268,19 +275,103 @@ def plot_initial_data(path: Path, xs: np.array, ns: np.array = None, ms: np.arra
 
 if __name__ == "__main__":
     res_dir = Path(sys.argv[1])
-    for p in res_dir.glob('*/*'):
 
-        if not p.is_dir():
+    # iterate through solutions
+    for pp in res_dir.glob('*'):
+        if not pp.is_dir():
             continue
 
-        if (p / "shape_means.pdf").exists():
-            print(f"Skipping {p}, already plotted these.")
-            continue
+        shapes = []
+        err_rpms = []
+        err_moms = []
+        cons_moms = []
+        cons_rpm = []
 
-        plot_consensus(p)
-        plot_errors(p)
-        plot_shape_means(p)
-        #plot_theta_means(p)
-        plot_mismatch(p)
-        plot_alphas(p)
-        open(p / "PLOTTED", "a")
+        # iterate through realisations of the solutions
+        ps = list(pp.glob('*'))
+        for p in ps:
+            if not p.is_dir():
+                continue
+            #if (p / "shape_means.pdf").exists():
+            #    print(f"Skipping {p}, already plotted these.")
+            #    continue
+
+            cm, ct = plot_consensus(p)
+            cons_moms.append(cm)
+            cons_rpm.append(ct)
+
+            re_mom, re_reparam = plot_errors(p)
+            err_moms.append(re_mom)
+            err_rpms.append(re_reparam)
+
+            shape, target = plot_shape_means(p)
+            shapes.append(shape)
+
+            plot_mismatch(p)
+            plot_alphas(p)
+            #plot_theta_means(p)
+
+        # Plot aggregation over realisations
+        if len(ps) > 0:
+            fig_consensus_momentum = plt.figure()
+            ax_cons_mom = fig_consensus_momentum.add_subplot(111)
+            ax_cons_mom.grid()
+            for cm in cons_moms:
+                ax_cons_mom.plot(range(1, len(cm) + 1), cm)
+            ax_cons_mom.set_xlabel('Iteration')
+            ax_cons_mom.set_ylabel('Consensus (momentum)')
+            ax_cons_mom.set_xlim(left=1, right=len(cm))
+            fig_consensus_momentum.savefig(pp / 'consensuses_momentum_avg.pdf')
+            fig_consensus_momentum.clf()
+
+            fig_consensus_reparam = plt.figure()
+            ax_cons_rpm = fig_consensus_reparam.add_subplot(111)
+            for ct in cons_rpm:
+                ax_cons_rpm.plot(range(1, len(ct) + 1), ct)
+            ax_cons_rpm.grid()
+            ax_cons_rpm.set_xlabel('Iteration')
+            ax_cons_rpm.set_ylabel('Consensus (parameterisation)')
+            ax_cons_rpm.set_xlim(left=1, right=len(ct))
+            fig_consensus_reparam.savefig(pp / 'consensuses_reparam_avg.pdf')
+            fig_consensus_reparam.clf()
+            plt.clf()
+            plt.close()
+
+            # set up figures for averages
+            fig_err_mom = plt.figure()
+            ax_err_mom = fig_err_mom.add_subplot(111)
+            ax_err_mom.grid()
+            for re_mom in err_moms:
+                ax_err_mom.plot(range(1, len(re_mom) + 1), re_mom)
+            ax_err_mom.set_xlabel('Iteration')
+            ax_err_mom.set_ylabel('Relative error (momentum)')
+            ax_err_mom.set_xlim(left=1, right=len(re_mom))
+            fig_err_mom.savefig(pp / 'relative-error_momentum_avg.pdf')
+            fig_err_mom.clf()
+            plt.clf()
+            plt.close()
+
+            fig_err_rpm = plt.figure()
+            ax_err_rpm = fig_err_rpm.add_subplot(111)
+            ax_err_rpm.plot(range(1, len(re_reparam) + 1), re_reparam)
+            ax_err_rpm.grid()
+            ax_err_rpm.set_xlabel('Iteration')
+            ax_err_rpm.set_ylabel('Relative error (parameterisation)')
+            ax_err_mom.set_xlim(left=1, right=len(re_reparam))
+            fig_err_rpm.savefig(pp / 'relative-error_reparam_avg.pdf')
+            fig_err_rpm.clf()
+            plt.close()
+
+            plt.figure()
+            for shape in shapes:
+                plt.plot(shape[:, 0], shape[:, 1], linewidth=0.3)
+            plt.plot(target[:, 0], target[:, 1], marker=target_marker, linestyle=target_linestyle, label=target_label)
+            plt.grid()
+            plt.xlabel('$x$')
+            plt.ylabel('$y$')
+            plt.legend(loc='best')
+            plt.savefig(pp / 'shapes_avg.pdf')
+            plt.clf()
+            plt.close()
+
+
