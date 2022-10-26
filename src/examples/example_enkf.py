@@ -47,7 +47,7 @@ if __name__ == "__main__":
         enkf._info(f"Loaded solution: '{manufactured_solution.name()}'.")
 
         # perturb momentum
-        pcg = randomfunctiongen.PCG64(seed=4113)
+        pcg = randomfunctiongen.PCG64(seed=1723862*enkf.ensemble_size)
         rg = randomfunctiongen.Generator(pcg)
         random_part = rg.uniform(enkf.forward_operator.MomentumSpace, -4, 4)
 
