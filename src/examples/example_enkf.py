@@ -65,7 +65,11 @@ if __name__ == "__main__":
         if enkf.inverse_problem_params.optimise_momentum:
             target = manufactured_solution.target
         else:
-            target = np.array(manufactured_solution.template.at(manufactured_solution.parameterisation))
+            reparameterised_points = manufactured_solution.reparam.exponentiate(
+                parameterisation,
+                time_steps=15,  # just copied from run_manufactured_solutions.py (fix!)
+            )
+            target = manufactured_solution.template.at(reparameterised_points)
 
         # run the EKI
         enkf.run_filter(
@@ -73,7 +77,7 @@ if __name__ == "__main__":
             parameterisation=parameterisation,
             target=target,
             max_iterations=max_iterations,
-            reparam=initial_reparam,
             momentum_truth=momentum_truth,
+            reparam=initial_reparam,
             reparam_truth=manufactured_solution.reparam,
         )
