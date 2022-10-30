@@ -11,7 +11,7 @@ class Reparameterisation:
         theta = 2*np.pi*np.linspace(0, 1, n_cells)
 
         if values is None:
-            values = theta.copy()
+            values = np.zeros(shape=theta.shape)
 
         values[-1] = values[0]
         self.spline = CubicSpline(theta, values, bc_type='periodic')
@@ -20,8 +20,8 @@ class Reparameterisation:
         dt = 1 / time_steps
         new_points = points.copy()
         for t in range(time_steps):
-            new_points = (new_points + self.spline(new_points) * dt)
-        return new_points % (2 * np.pi)
+            new_points = (new_points + self.spline(new_points) * dt) % (2 * np.pi)
+        return new_points
 
     def at(self, param: np.array) -> np.array:
         return self.spline(param)
