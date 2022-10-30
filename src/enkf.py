@@ -79,14 +79,13 @@ class EnsembleKalmanFilter:
         if momentum_truth is not None:
             norm_momentum_truth = np.sqrt(assemble((momentum_truth('+')) ** 2 * dS(CURVE_TAG)))
         if reparam_truth is not None:
-            reparam_truth_eval = reparam_truth.at(parameterisation)
-            norm_reparam_truth = np.linalg.norm(reparam_truth_eval)
+            norm_reparam_truth = np.linalg.norm(reparam_truth.spline.c)
 
         self.dump_parameters(target)
         self.momentum = momentum
         self.parameterisation = parameterisation
         self.reparam = reparam
-        self.reparam_mean = Reparameterisation(n_cells=parameterisation.shape[0])
+        self.reparam_mean = Reparameterisation(n_cells=self.parameterisation.shape[0])
 
         target = np.array(target)
         self.gamma = self.inverse_problem_params.gamma_scale * np.eye(product(target.shape), dtype='float')
@@ -120,7 +119,7 @@ class EnsembleKalmanFilter:
                     relative_error_momentum.append(relative_momentum_norm / norm_momentum_truth)
                 if reparam_truth is not None:
                     relative_error_param.append(
-                        np.linalg.norm(self.reparam_mean.at(parameterisation) - reparam_truth_eval) / norm_reparam_truth
+                        np.linalg.norm(self.reparam_mean.spline.c - reparam_truth.spline.c) / norm_reparam_truth
                     )
             self.ensemble.ensemble_comm.Barrier()
 
