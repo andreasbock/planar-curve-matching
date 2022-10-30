@@ -56,7 +56,7 @@ if __name__ == "__main__":
         initial_momentum = enkf.forward_operator.momentum_function().assign(random_part)
 
         # perturb reparam
-        initial_parameterisation = manufactured_solution.parameterisation
+        parameterisation = manufactured_solution.parameterisation
         initial_reparam = Reparameterisation(
             n_cells=len(manufactured_solution.parameterisation),
             values=rg.uniform(low=-1, high=1, size=manufactured_solution.reparam_values.shape),
@@ -70,7 +70,7 @@ if __name__ == "__main__":
         # run the EKI
         enkf.run_filter(
             momentum=initial_momentum,
-            parameterisation=initial_parameterisation,
+            parameterisation=parameterisation,
             target=target,
             max_iterations=max_iterations,
             reparam=initial_reparam,
