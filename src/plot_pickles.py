@@ -70,7 +70,7 @@ def plot_errors(res_dir: Path):
         plt.xlabel('Iteration $k$')
         plt.ylabel(r'Error level')
         plt.semilogy(range(1, len(errors) + 1), errors, label=r'Data misfit')
-        plt.axhline(y=eta, linestyle=':', color='red', label=r'Noise level')
+        #plt.axhline(y=eta, linestyle=':', color='red', label=r'Noise level')
         plt.legend(loc='best')
         plt.savefig(res_dir / 'data_misfit.pdf')
         plt.clf()
@@ -90,7 +90,7 @@ def plot_errors(res_dir: Path):
     plt.savefig(res_dir / 'relative_error.pdf')
     plt.clf()
 
-    return errors_momentum, errors_reparam
+    return errors_momentum, errors_reparam, errors
 
 
 def plot_shape_means(res_dir: Path):
@@ -284,6 +284,7 @@ if __name__ == "__main__":
         shapes = []
         err_rpms = []
         err_moms = []
+        misfits = []
         cons_moms = []
         cons_rpm = []
 
@@ -300,8 +301,9 @@ if __name__ == "__main__":
             cons_moms.append(cm)
             cons_rpm.append(ct)
 
-            re_mom, re_reparam = plot_errors(p)
-            err_moms.append(re_mom)
+            mf, re_reparam, misfit = plot_errors(p)
+            misfits.append(misfit)
+            err_moms.append(mf)
             err_rpms.append(re_reparam)
 
             shape, target = plot_shape_means(p)
@@ -341,11 +343,11 @@ if __name__ == "__main__":
             fig_err_mom = plt.figure()
             ax_err_mom = fig_err_mom.add_subplot(111)
             ax_err_mom.grid()
-            for re_mom in err_moms:
-                ax_err_mom.plot(range(1, len(re_mom) + 1), re_mom)
+            for mf in err_moms:
+                ax_err_mom.plot(range(1, len(mf) + 1), mf)
             ax_err_mom.set_xlabel('Iteration')
             ax_err_mom.set_ylabel('Relative error (momentum)')
-            ax_err_mom.set_xlim(left=1, right=len(re_mom))
+            ax_err_mom.set_xlim(left=1, right=len(mf))
             fig_err_mom.savefig(pp / 'relative-error_momentum_avg.pdf')
             fig_err_mom.clf()
             plt.clf()
@@ -353,13 +355,26 @@ if __name__ == "__main__":
 
             fig_err_rpm = plt.figure()
             ax_err_rpm = fig_err_rpm.add_subplot(111)
-            ax_err_rpm.plot(range(1, len(re_reparam) + 1), re_reparam)
+            for mf in err_rpms:
+                ax_err_rpm.plot(range(1, len(mf) + 1), mf)
             ax_err_rpm.grid()
             ax_err_rpm.set_xlabel('Iteration')
             ax_err_rpm.set_ylabel('Relative error (parameterisation)')
             ax_err_mom.set_xlim(left=1, right=len(re_reparam))
             fig_err_rpm.savefig(pp / 'relative-error_reparam_avg.pdf')
             fig_err_rpm.clf()
+            plt.close()
+
+            fig_err_misfit = plt.figure()
+            ax_err_misfit = fig_err_misfit.add_subplot(111)
+            for mf in misfits:
+                ax_err_misfit.semilogy(range(1, len(mf) + 1), mf)
+            ax_err_misfit.grid()
+            ax_err_misfit.set_xlabel('Iteration')
+            ax_err_misfit.set_ylabel('Data misfit')
+            ax_err_mom.set_xlim(left=1, right=len(re_reparam))
+            fig_err_misfit.savefig(pp / 'misfits.pdf')
+            fig_err_misfit.clf()
             plt.close()
 
             plt.figure()
