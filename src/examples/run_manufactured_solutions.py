@@ -58,7 +58,7 @@ if __name__ == "__main__":
                         momentum=momentum,
                         reparam_values=values,
                         reparam=reparam,
-                        parameterisation=reparameterised_points,
+                        parameterisation=parameterisation,
                     )
                     mf.dump(path)
                     logger.info(f"Wrote solution to {path / mf.name()}.")
