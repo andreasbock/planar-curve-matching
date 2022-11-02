@@ -22,7 +22,7 @@ TEMPLATE_MESHES_PATH = utils.project_root() / "TEMPLATE_MESHES"
 MANUFACTURED_SOLUTIONS_PATH = utils.project_root() / "MANUFACTURED_SOLUTIONS"
 Parameterisation = np.array
 MANUFACTURED_SOLUTIONS_PARAMS: List[Parameterisation] = [
-    utils.uniform_parameterisation(n) for n in [10, 20]
+    utils.uniform_parameterisation(n) for n in [20]
 ]
 MESH_RESOLUTIONS = [1 / (2 * h) for h in range(1, 2)]
 MomentumFunction = Any
