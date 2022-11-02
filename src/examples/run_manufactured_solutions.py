@@ -5,7 +5,7 @@ from firedrake import File, SpatialCoordinate
 from src import utils
 from src.curves import CURVES, Reparameterisation
 from src.manufactured_solutions import (
-    MANUFACTURED_SOLUTIONS_PATH, MANUFACTURED_SOLUTIONS_MOMENTUM, MESH_RESOLUTIONS,  MANUFACTURED_SOLUTIONS_PARAMS,
+    MANUFACTURED_SOLUTIONS_PATH, MANUFACTURED_SOLUTIONS_MOMENTUM, MESH_RESOLUTIONS, MANUFACTURED_SOLUTIONS_PARAMS,
     ManufacturedSolution,
 )
 from src.mesh_generation import MeshGenerationParameters, generate_mesh
