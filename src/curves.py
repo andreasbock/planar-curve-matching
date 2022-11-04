@@ -1,8 +1,5 @@
-from typing import List
 from scipy.interpolate import CubicSpline
 import numpy as np
-
-from firedrake import PeriodicIntervalMesh, VectorFunctionSpace, Function, COMM_WORLD
 
 
 class Reparameterisation:
