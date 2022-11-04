@@ -1,6 +1,6 @@
 import numpy as np
 
-from firedrake import File, SpatialCoordinate
+from firedrake import File
 
 from src import utils
 from src.curves import CURVES, Reparameterisation
@@ -46,9 +46,6 @@ if __name__ == "__main__":
 
                     curve_result = shooter.shoot(momentum)
                     target = np.array(curve_result.diffeo.at(template_points))
-                    momentum_function = shooter.momentum_function()
-                    momentum_expr = momentum.signal(*SpatialCoordinate(shooter.mesh))
-                    momentum_function.interpolate(momentum_expr)
                     noise = np.random.normal(loc=0, scale=.1, size=target.shape)
                     target += noise
 
