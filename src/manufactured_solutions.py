@@ -43,6 +43,7 @@ class ManufacturedSolution:
     parameterisation: Parameterisation
     reparam_values: np.array
     reparam: Reparameterisation
+    noise: np.array
 
     _template_file_name: str = "template"
     _curve_name: str = "curve_name"
@@ -52,6 +53,7 @@ class ManufacturedSolution:
     _parameterisation_name: str = "parameterisation"
     _reparam_values_name: str = "reparam_values"
     _reparam_name: str = "reparam_coefs"
+    _noise_name: str = "noise"
 
     def name(self) -> str:
         return f"{self.mesh_path.stem}_{self.momentum.name}_LANDMARKS={len(self.parameterisation)}"
@@ -69,6 +71,7 @@ class ManufacturedSolution:
         utils.pdump(self.parameterisation, path / self._parameterisation_name)
         utils.pdump(self.reparam_values, path / self._reparam_values_name)
         utils.pdump(self.reparam.spline.c, path / self._reparam_name)
+        utils.pdump(self.noise, path / self._noise_name)
 
         plot_landmarks(
             self.target,
@@ -100,6 +103,7 @@ class ManufacturedSolution:
             parameterisation=parameterisation,
             reparam_values=utils.pload(base_path / cls._reparam_values_name),
             reparam=reparam,
+            noise=utils.pload(base_path / cls._noise_name)
         )
 
 
