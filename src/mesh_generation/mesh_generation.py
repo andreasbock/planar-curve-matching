@@ -14,8 +14,8 @@ _GMSH_BINARY = "gmsh"
 _SHELL = '/bin/zsh'
 
 CURVE_TAG = 10
-_INNER_TAG = 6
-_OUTER_TAG = 7
+INNER_TAG = 6
+OUTER_TAG = 7
 
 
 @dataclass
@@ -48,8 +48,8 @@ def write_geo_file(
         max_xy=params.max_xy,
         mesh_size=params.mesh_size,
         CURVE_TAG=CURVE_TAG,
-        INNER_TAG=_INNER_TAG,
-        OUTER_TAG=_OUTER_TAG,
+        INNER_TAG=INNER_TAG,
+        OUTER_TAG=OUTER_TAG,
         POINTS=points,
         LINES=lines,
         LOOP_ARRAY=loop_array,
@@ -79,7 +79,7 @@ def msh_to_pvd(msh_file: Path, overwrite: bool = False) -> None:
     if pvd_file.exists() or overwrite:
         return
     mesh = Mesh(str(msh_file))
-    indicator = utils.shape_function(mesh, mesh_tag=CURVE_TAG)
+    indicator = utils.shape_function(mesh, mesh_tag=INNER_TAG)
 
     File(pvd_file).write(indicator)
     print(f"Wrote {pvd_file}.")
