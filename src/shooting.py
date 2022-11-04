@@ -70,7 +70,7 @@ class GeodesicShooter:
         # Velocity, momentum and diffeo
         self.diffeo = project(SpatialCoordinate(self.mesh), self.XW)
         self.u, self.w, self.z = Function(self.XW), Function(self.XW), Function(self.XW)
-        self.momentum = Function(self.MomentumSpace)#.assign(1)  # dummy
+        self.momentum = Function(self.MomentumSpace)  # dummy
 
         # Functions we'll need for the source term/visualisation
         self.shape_function = utils.shape_function(self.mesh, CURVE_TAG)
@@ -95,52 +95,26 @@ class GeodesicShooter:
         dt, dvt = TrialFunction(self.XW_tensor), TestFunction(self.XW_tensor)
         h1_form = inner(dt, dvt) * dx
         lvp_jacobian = LinearVariationalProblem(
-            a=h1_form,
-            L=inner(grad(self.diffeo), dvt) * dx,
-            u=self.jacobian,
-            constant_jacobian=False,
+            a=h1_form, L=inner(grad(self.diffeo), dvt) * dx, u=self.jacobian, constant_jacobian=False
         )
         lvp_inv_jacobian = LinearVariationalProblem(
-            a=h1_form,
-            L=inner(inv(self.jacobian), dvt) * dx,
-            u=self.inv_jacobian,
-            constant_jacobian=False,
-        )
-        lvp_transp_inv_jacobian = LinearVariationalProblem(
-            a=h1_form,
-            L=inner(transpose(self.inv_jacobian), dvt) * dx,
-            u=self.transp_inv_jacobian,
-            constant_jacobian=False,
-        )
-        dt, dvt = TrialFunction(self.XW_scalar), TestFunction(self.XW_scalar)
-        lvp_det_jacobian = LinearVariationalProblem(
-            a=inner(dt, dvt) * dx,
-            L=inner(det(self.jacobian), dvt) * dx,
-            u=self.det_jacobian,
-            constant_jacobian=False,
+            a=h1_form, L=inner(inv(self.jacobian), dvt) * dx, u=self.inv_jacobian, constant_jacobian=False,
         )
 
-        ### u, z, w ###
+        dt, dvt = TrialFunction(self.XW_scalar), TestFunction(self.XW_scalar)
+        lvp_det_jacobian = LinearVariationalProblem(
+            a=inner(dt, dvt) * dx, L=inner(det(self.jacobian), dvt) * dx, u=self.det_jacobian, constant_jacobian=False,
+        )
         lvp_z = LinearVariationalProblem(
             a=a_form,
-            L=Constant(2*pi) * self.h_inv('+') * dot(dot(self.transp_inv_jacobian, self.momentum * self.shape_normal), dv)('+') * dS(CURVE_TAG),
-            u=self.z,
-            bcs=self.velocity_bcs,
-            constant_jacobian=False,
+            L=Constant(2*pi) * self.h_inv('+') * dot(dot(transpose(self.inv_jacobian), self.momentum * self.shape_normal), dv)('+') * dS(CURVE_TAG),
+            u=self.z, bcs=self.velocity_bcs, constant_jacobian=False,
         )
         lvp_w = LinearVariationalProblem(
-            a=a_form,
-            L=inner(self.z, dv) * self.det_jacobian * dx,
-            u=self.w,
-            bcs=self.velocity_bcs,
-            constant_jacobian=False,
+            a=a_form, L=inner(self.z, dv) * self.det_jacobian * dx, u=self.w, bcs=self.velocity_bcs, constant_jacobian=False,
         )
         lvp_u = LinearVariationalProblem(
-            a=a_form,
-            L=inner(self.w, dv) * self.det_jacobian * dx,
-            u=self.u,
-            bcs=self.velocity_bcs,
-            constant_jacobian=False,
+            a=a_form, L=inner(self.w, dv) * self.det_jacobian * dx, u=self.u, bcs=self.velocity_bcs, constant_jacobian=False,
         )
 
         self.lvs_z = LinearVariationalSolver(lvp_z, solver_parameters=self._solver_parameters)
@@ -149,7 +123,6 @@ class GeodesicShooter:
 
         self.lvs_jacobian = LinearVariationalSolver(lvp_jacobian, solver_parameters=self._solver_parameters)
         self.lvs_inv_jacobian = LinearVariationalSolver(lvp_inv_jacobian, solver_parameters=self._solver_parameters)
-        self.lvs_transp_inv_jacobian = LinearVariationalSolver(lvp_transp_inv_jacobian, solver_parameters=self._solver_parameters)
         self.lvs_det_jacobian = LinearVariationalSolver(lvp_det_jacobian, solver_parameters=self._solver_parameters)
 
     def shoot(self, momentum: Momentum) -> CurveResult:
@@ -163,27 +136,13 @@ class GeodesicShooter:
         self.momentum.assign(momentum)
 
         for t in range(self.parameters.time_steps):
-            print(f"t = {t}")
-            print(f"\t norm(self.diffeo): {norm(self.diffeo)}")
-
             self.lvs_jacobian.solve()
-            print(f"\t norm(self.jacobian): {norm(self.jacobian)}")
-
             self.lvs_inv_jacobian.solve()
-            print(f"\t norm(self.inv_jacobian): {norm(self.inv_jacobian)}")
-
-            self.lvs_transp_inv_jacobian.solve()
-            print(f"\t norm(self.inv_jacobian): {norm(self.transp_inv_jacobian)}")
-
+            self.transp_inv_jacobian.assign(transpose(self.inv_jacobian))
             self.lvs_det_jacobian.solve()
-            print(f"\t norm(self.det_jacobian): {norm(self.det_jacobian)}")
-
             self.lvs_z.solve()
-            print(f"\t norm(self.z): {norm(self.z)}")
             self.lvs_w.solve()
-            print(f"\t norm(self.w): {norm(self.w)}")
             self.lvs_u.solve()
-            print(f"\t norm(self.u): {norm(self.u)}")
             self.diffeo.assign(self.diffeo + self.u * Dt)
 
         # move the mesh for visualisation
