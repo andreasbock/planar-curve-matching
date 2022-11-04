@@ -49,11 +49,14 @@ if __name__ == "__main__":
                     momentum_function = shooter.momentum_function()
                     momentum_expr = momentum.signal(*SpatialCoordinate(shooter.mesh))
                     momentum_function.interpolate(momentum_expr)
+                    noise = np.random.normal(loc=0, scale=.1, size=target.shape)
+                    target += noise
 
                     # dump the solution
                     mf = ManufacturedSolution(
                         template=template,
                         target=target,
+                        noise=noise,
                         mesh_path=mesh_path,
                         momentum=momentum,
                         reparam_values=values,
