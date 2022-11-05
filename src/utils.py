@@ -111,13 +111,16 @@ def pload(name):
 
 
 def shape_function(mesh: firedrake.Mesh, mesh_tag: int, dim=2):
-    function_space = FunctionSpace(mesh, "CG", 1)
-    v, dv = TrialFunction(function_space), TestFunction(function_space)
-    shape = Function(function_space, name="shape_function")
     if dim == 2:
         meas = dx
+        function_space = FunctionSpace(mesh, "DG", 0)
+        v, dv = TrialFunction(function_space), TestFunction(function_space)
     else:
         meas = dS
+        function_space = FunctionSpace(mesh, "CG", 1)
+        v, dv = TrialFunction(function_space), TestFunction(function_space)
+
+    shape = Function(function_space, name="shape_function")
     solve(v*dv*dx == dv('+')*meas(mesh_tag), shape)
     return shape
 
