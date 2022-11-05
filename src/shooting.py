@@ -8,8 +8,7 @@ from pathlib import Path
 import src.utils as utils
 from src.curves import Curve
 from src.manufactured_solutions import Momentum
-from src.mesh_generation.mesh_generation import CURVE_TAG
-
+from src.mesh_generation.mesh_generation import CURVE_TAG, INNER_TAG
 
 __all__ = ["Diffeomorphism", "ShootingParameters", "GeodesicShooter"]
 
@@ -73,7 +72,7 @@ class GeodesicShooter:
         self.momentum = Function(self.MomentumSpace)  # dummy
 
         # Functions we'll need for the source term/visualisation
-        self.shape_function = utils.shape_function(self.mesh, CURVE_TAG)
+        self.shape_function = utils.shape_function(self.mesh, INNER_TAG)
         self.h_inv = inv(utils.compute_facet_area(self.mesh))
         self.n = assemble(self.h_inv('+') * dS(CURVE_TAG))  # reference interval has measure 1
         self.shape_normal = utils.shape_normal(self.mesh, VDGT)
