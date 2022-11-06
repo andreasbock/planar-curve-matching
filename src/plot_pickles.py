@@ -310,7 +310,6 @@ if __name__ == "__main__":
             shapes.append(shape)
 
             plot_alphas(p)
-            #plot_theta_means(p)
 
         # Plot aggregation over realisations
         if len(ps) > 0:
