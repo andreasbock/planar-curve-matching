@@ -309,7 +309,6 @@ if __name__ == "__main__":
             shape, target = plot_shape_means(p)
             shapes.append(shape)
 
-            plot_mismatch(p)
             plot_alphas(p)
             #plot_theta_means(p)
 
