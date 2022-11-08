@@ -2,14 +2,15 @@ from src.enkf import *
 from src.shooting import ShootingParameters
 from src.manufactured_solutions import get_solutions
 
+
 if __name__ == "__main__":
     # parameters
     max_iterations = 10
     shooting_parameters = ShootingParameters()
+    shooting_parameters.time_steps = 2
     inverse_problem_parameters = InverseProblemParameters()
     inverse_problem_parameters.optimise_momentum = True
     inverse_problem_parameters.optimise_parameterisation = True
-
     process_per_ensemble_member = 1
     ensemble_object = Ensemble(COMM_WORLD, M=process_per_ensemble_member)
 
@@ -49,35 +50,19 @@ if __name__ == "__main__":
         # perturb momentum
         pcg = randomfunctiongen.PCG64()
         rg = randomfunctiongen.Generator(pcg)
-        random_part = rg.uniform(enkf.forward_operator.MomentumSpace, -4, 4)
+        random_part = rg.uniform(enkf.shooter.MomentumSpace, -4, 4)
 
-        x, y = SpatialCoordinate(enkf.forward_operator.mesh)
-        momentum_truth = enkf.forward_operator.momentum_function().interpolate(manufactured_solution.momentum.signal(x, y))
-        initial_momentum = enkf.forward_operator.momentum_function().assign(random_part)
+        x, y = SpatialCoordinate(enkf.shooter.mesh)
+        momentum_truth = enkf.shooter.momentum_function().interpolate(manufactured_solution.momentum.signal(x, y))
+        initial_momentum = enkf.shooter.momentum_function().assign(random_part)
 
         # perturb reparam
-        parameterisation = manufactured_solution.parameterisation
-        initial_reparam = Reparameterisation(
-            n_cells=len(manufactured_solution.parameterisation),
-            values=rg.uniform(low=-1, high=1, size=manufactured_solution.reparam_values.shape),
-        )
-
-        if enkf.inverse_problem_params.optimise_momentum:
-            target = manufactured_solution.target
-        else:
-            reparameterised_points = manufactured_solution.reparam.exponentiate(
-                parameterisation,
-                time_steps=15,  # just copied from run_manufactured_solutions.py (fix!)
-            )
-            target = manufactured_solution.template.at(reparameterised_points)
+        target = Function(enkf.shooter.DG, manufactured_solution.target)
 
         # run the EKI
         enkf.run_filter(
             momentum=initial_momentum,
-            parameterisation=parameterisation,
             target=target,
             max_iterations=max_iterations,
             momentum_truth=momentum_truth,
-            reparam=initial_reparam,
-            reparam_truth=manufactured_solution.reparam,
         )

@@ -1,11 +1,11 @@
 import numpy as np
 
-from firedrake import File
+from firedrake import File, Mesh, Function, functionspaceimpl
 
 from src import utils
-from src.curves import CURVES, Reparameterisation
+from src.curves import CURVES
 from src.manufactured_solutions import (
-    MANUFACTURED_SOLUTIONS_PATH, MANUFACTURED_SOLUTIONS_MOMENTUM, MESH_RESOLUTIONS, MANUFACTURED_SOLUTIONS_PARAMS,
+    MANUFACTURED_SOLUTIONS_PATH, MANUFACTURED_SOLUTIONS_MOMENTUM, MESH_RESOLUTIONS,
     ManufacturedSolution,
 )
 from src.mesh_generation import MeshGenerationParameters, generate_mesh
@@ -18,7 +18,6 @@ if __name__ == "__main__":
     shooting_parameters = ShootingParameters()
     shooting_parameters.time_steps = 15
     shooting_parameters.alpha = 0.5
-    time_steps_reparam = 15
 
     for template in CURVES:
         for resolution in MESH_RESOLUTIONS:
@@ -28,41 +27,32 @@ if __name__ == "__main__":
             mesh_path = generate_mesh(mesh_params, template, MANUFACTURED_SOLUTIONS_PATH)
 
             for momentum in MANUFACTURED_SOLUTIONS_MOMENTUM:
-                # shooting
-                logger.info(f"Shooting with `{momentum.name}`.")
-                shooter = GeodesicShooter(logger, mesh_path, template, shooting_parameters)
-
                 template_and_momentum_name = f"{mesh_path.stem}_{momentum.name}"
                 path = mesh_path.parent / template_and_momentum_name
                 path.mkdir(exist_ok=True)
+
                 # logging
                 logger.info(f"Logging to `{path}`.")
-                for parameterisation in MANUFACTURED_SOLUTIONS_PARAMS:
-                    n_cells = len(parameterisation)
-                    values = np.random.normal(loc=0, scale=.1, size=n_cells)
-                    reparam = Reparameterisation(n_cells, values=values)
-                    reparameterised_points = reparam.exponentiate(parameterisation, time_steps_reparam)
-                    template_points = template.at(reparameterised_points)
+                shooter = GeodesicShooter(logger, mesh_path, template, shooting_parameters)
 
-                    curve_result = shooter.shoot(momentum)
-                    target = np.array(curve_result.diffeo.at(template_points))
-                    noise = np.random.normal(loc=0, scale=.1, size=target.shape)
-                    target += noise
+                curve_result = shooter.shoot(momentum)
 
-                    # dump the solution
-                    mf = ManufacturedSolution(
-                        template=template,
-                        target=target,
-                        noise=noise,
-                        mesh_path=mesh_path,
-                        momentum=momentum,
-                        reparam_values=values,
-                        reparam=reparam,
-                        parameterisation=parameterisation,
-                    )
-                    mf.dump(path)
-                    logger.info(f"Wrote solution to {path / mf.name()}.")
+                new_mesh = Mesh(Function(shooter.VCG1).interpolate(curve_result.diffeo))
+                indicator_moved = Function(
+                    functionspaceimpl.WithGeometry.create(shooter.shape_function.function_space(), new_mesh),
+                    val=shooter.shape_function.topological
+                )
+                f = Function(shooter.DG).project(indicator_moved)
+                indicator_moved_original_mesh = Function(shooter.DG, np.heaviside(f.dat.data, 0))
+                utils.plot_curves(indicator_moved_original_mesh, path / f"{mesh_path.stem}_{momentum.name}.pdf")
 
-                    # move mesh via linear projection and dump pvd files
-                shooter.update_mesh()
-                File(path / f"{mesh_path.stem}_{momentum.name}.pvd").write(shooter.shape_function)
+                # dump the solution
+                mf = ManufacturedSolution(
+                    template=template,
+                    target=indicator_moved_original_mesh.dat.data_ro,
+                    mesh_path=mesh_path,
+                    momentum=momentum,
+                )
+                mf.dump(path)
+                logger.info(f"Wrote solution to {path / mf.name()}.")
+                File(path / f"{mesh_path.stem}_{momentum.name}.pvd").write(indicator_moved_original_mesh)

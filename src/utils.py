@@ -110,6 +110,15 @@ def pload(name):
     return f
 
 
+def plot_curves(u, path: Path, levels: int = 50):
+    fig, axes = plt.subplots()
+    levels = np.linspace(0, 1, levels + 1)
+    contours = tricontourf(u, levels=levels, axes=axes, cmap="inferno")
+    axes.set_aspect("equal")
+    fig.colorbar(contours)
+    fig.savefig(path)
+
+
 def shape_function(mesh: firedrake.Mesh, mesh_tag: int, dim=2):
     if dim == 2:
         meas = dx

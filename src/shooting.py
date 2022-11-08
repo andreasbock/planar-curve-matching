@@ -49,7 +49,8 @@ class GeodesicShooter:
         communicator=COMM_WORLD,
     ):
         self.mesh_path = mesh_path
-        self.mesh = Mesh(str(self.mesh_path), comm=communicator)
+        self.communicator = communicator
+        self.mesh = Mesh(str(self.mesh_path), comm=self.communicator)
         self._logger = logger
         self.parameters = shooting_parameters or ShootingParameters()
         self._solver_parameters = self.parameters.velocity_solver_parameters
