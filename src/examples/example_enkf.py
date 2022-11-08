@@ -45,7 +45,7 @@ if __name__ == "__main__":
                 communicator=ensemble_object.comm,
             )
         )
-        enkf._info(f"Loaded solution: '{manufactured_solution.name()}'.")
+        enkf.info(f"Loaded solution: '{manufactured_solution.name()}'.")
 
         # perturb momentum
         pcg = randomfunctiongen.PCG64()

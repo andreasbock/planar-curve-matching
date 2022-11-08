@@ -84,12 +84,12 @@ class EnsembleKalmanFilter:
         iteration = 0
         previous_error = float("-inf")
         while iteration < max_iterations:
-            self._info(f"Iteration {iteration}: predicting...")
+            self.info(f"Iteration {iteration}: predicting...")
             self.predict()
             self.mismatch.assign(target - self.shape_mean)
 
             new_error = self.error_norm(self.mismatch)
-            self._info(f"Iteration {iteration}: Error norm: {new_error}")
+            self.info(f"Iteration {iteration}: Error norm: {new_error}")
             consensus_momentum = self._consensus_momentum(self.momentum_mean)
             # log everything
             if self._rank == 0:
@@ -103,7 +103,7 @@ class EnsembleKalmanFilter:
 
             # either we have converged or we correct
             if self.has_converged(new_error, previous_error):
-                self._info(f"Filter has converged.")
+                self.info(f"Filter has converged.")
                 break
             else:
                 self.shape_centered.assign(self.shape - self.shape_mean)
@@ -112,7 +112,7 @@ class EnsembleKalmanFilter:
                 cw_alpha_gamma_inv, alpha = self.compute_cw_operator()
                 shape_update = np.dot(cw_alpha_gamma_inv, self.mismatch_local.dat.data)
 
-                self._info(f"Iteration {iteration}: correcting momentum...")
+                self.info(f"Iteration {iteration}: correcting momentum...")
                 self._correct_momentum(shape_update)
                 if self._rank == 0:
                     alphas.append(alpha)
@@ -127,7 +127,7 @@ class EnsembleKalmanFilter:
             utils.pdump(consensuses_momentum, self._logger.logger_dir / "consensuses_momentum")
             utils.pdump(self.momentum_mean.dat.data, self._logger.logger_dir / "momentum_mean_converged")
         if iteration > max_iterations:
-            self._info(f"Filter stopped - maximum iteration count reached.")
+            self.info(f"Filter stopped - maximum iteration count reached.")
 
     def predict(self):
         self.ensemble.ensemble_comm.Barrier()
@@ -156,7 +156,7 @@ class EnsembleKalmanFilter:
 
     def compute_cw_operator(self):
         rhs = self.inverse_problem_params.rho * self.error_norm(self.mismatch)
-        self._info(f"\t rhs = {rhs}")
+        self.info(f"\t rhs = {rhs}")
 
         alpha = self.inverse_problem_params.sample_covariance_regularisation
         cw = self.compute_cw()
@@ -168,15 +168,15 @@ class EnsembleKalmanFilter:
 
             # compute the error norm (lhs)
             lhs = alpha * self.error_norm(np.dot(cw_alpha_gamma_inv, self.mismatch.dat.data))
-            self._info(f"\t lhs = {lhs}")
+            self.info(f"\t lhs = {lhs}")
             if lhs >= rhs or not self.inverse_problem_params.dynamic_regularisation:
-                self._info(f"\t alpha = {alpha}")
+                self.info(f"\t alpha = {alpha}")
                 return cw_alpha_gamma_inv, alpha
             alpha *= 2
             iteration += 1
 
         error_message = f"!!! alpha failed to converge in {iteration} iterations"
-        self._info(error_message)
+        self.info(error_message)
         raise Exception(error_message)
 
     def compute_cw(self):
@@ -188,10 +188,10 @@ class EnsembleKalmanFilter:
 
     def has_converged(self, n_err, err):
         if n_err <= self.inverse_problem_params.tau*self.inverse_problem_params.eta:
-            self._info(f"Converged, error at noise level ({n_err} <= {self.inverse_problem_params.tau * self.inverse_problem_params.eta}).")
+            self.info(f"Converged, error at noise level ({n_err} <= {self.inverse_problem_params.tau * self.inverse_problem_params.eta}).")
             return True
         elif np.fabs(n_err - err) < self.inverse_problem_params.relative_tolerance:
-            self._info("No improvement in residual, terminating filter.")
+            self.info("No improvement in residual, terminating filter.")
             return True
         else:
             return False
@@ -202,8 +202,8 @@ class EnsembleKalmanFilter:
         return np.sqrt(np.dot(x.T, np.dot(self.gamma_inv, x)))
 
     def dump_parameters(self, target=None):
-        self._info(f"Ensemble size: {self.ensemble_size}.")
-        self._info(f"{self.inverse_problem_params}")
+        self.info(f"Ensemble size: {self.ensemble_size}.")
+        self.info(f"{self.inverse_problem_params}")
         self.shooter.dump_parameters()
         File(self._logger.logger_dir / 'target.pvd').write(target)
 
@@ -224,7 +224,7 @@ class EnsembleKalmanFilter:
         self._mpi_reduce(_consensus_me, _consensus)
         return _consensus[0] / self.ensemble_size
 
-    def _info(self, msg):
+    def info(self, msg):
         if self._rank == 0:
             self._logger.info(msg)
 
