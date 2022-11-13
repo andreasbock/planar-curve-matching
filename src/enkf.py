@@ -136,7 +136,8 @@ class EnsembleKalmanFilter:
             functionspaceimpl.WithGeometry.create(self.shooter.shape_function.function_space(), new_mesh),
             val=self.shooter.shape_function.topological,
         )
-        self.shape = Function(self.shooter.DG).project(indicator_moved)
+        self.shape.project(indicator_moved)
+        self.shape.dat.data[:] = np.heaviside(self.shape.dat.data, 0)
 
         # compute ensemble means
         self._compute_shape_mean()
