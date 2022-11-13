@@ -28,7 +28,7 @@ class ShootingParameters:
         }
     )
     momentum_degree: int = 0
-    alpha: float = .1
+    alpha: float = 1
     time_steps: int = 10
 
 
