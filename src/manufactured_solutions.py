@@ -69,15 +69,13 @@ def get_solutions(
     shapes: List[str],
     momentum_names: List[str] = None,
     resolutions: List[float] = None,
-    landmarks: List[int] = None,
 ) -> List[ManufacturedSolution]:
     momenta = momentum_names if momentum_names is not None else MANUFACTURED_SOLUTIONS_MOMENTUM_NAMES
     resolutions = resolutions if resolutions is not None else MESH_RESOLUTIONS
-    landmarks = landmarks if landmarks is not None else MANUFACTURED_SOLUTIONS_PARAMS
 
     solutions = []
-    for momentum, shape, res, lms in itertools.product(momenta, shapes, resolutions, landmarks):
-        solution = get_solution(momentum, shape, res, lms)
+    for momentum, shape, res in itertools.product(momenta, shapes, resolutions):
+        solution = get_solution(momentum, shape, res)
         solutions.append(solution)
     return solutions
 
@@ -86,7 +84,6 @@ def get_solution(
     momentum_name: str,
     shape_name: str,
     resolution: float,
-    landmarks: int,
 ) -> ManufacturedSolution:
     name = f"{shape_name}_{momentum_name}"
     solution_path = MANUFACTURED_SOLUTIONS_PATH / f"h={resolution}" / name
