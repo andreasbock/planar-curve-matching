@@ -47,9 +47,12 @@ class EnsembleKalmanFilter:
         self.shape_mean = Function(self.shooter.DG)
         self.shape_centered = Function(self.shooter.DG)
 
+        self.curve_data_indices = self._curve_ids()
+        dim_momentum_data = len(self.curve_data_indices)
+
         self.momentum = self.shooter.momentum_function()
         self.momentum_mean = self.shooter.momentum_function()
-        self.momentum_centered = self.shooter.momentum_function()
+        self.momentum_centered = np.empty(shape=dim_momentum_data)
 
         self.mismatch = Function(self.shooter.DG)
         self.mismatch_local = Function(self.shooter.DG)
@@ -57,6 +60,13 @@ class EnsembleKalmanFilter:
         self.gamma = None
         self.gamma_inv = None
         self.mean_normaliser = Constant(1 / self.ensemble_size)
+
+        cov_sz = len(self.shape.dat.data)
+        self.cov_mismatch = np.empty((cov_sz, cov_sz))
+        self.cov_mismatch_all = np.empty(shape=self.cov_mismatch.shape)
+
+        self.xcorr_momentum = np.empty((dim_momentum_data, cov_sz))
+        self.xcorr_momentum_all = np.empty(shape=self.xcorr_momentum.shape)
 
     def run_filter(
         self,
@@ -178,11 +188,10 @@ class EnsembleKalmanFilter:
         raise Exception(error_message)
 
     def compute_cw(self):
-        centered_shape_flat = self.shape_centered.dat.data
-        cov_mismatch = np.outer(centered_shape_flat, centered_shape_flat)
-        cov_mismatch_all = np.zeros(shape=cov_mismatch.shape)
-        self._mpi_reduce(cov_mismatch, cov_mismatch_all)
-        return cov_mismatch_all / (self.ensemble_size - 1)
+        shape_data = self.shape_centered.dat.data
+        np.outer(shape_data, shape_data, self.cov_mismatch)
+        self._mpi_reduce(self.cov_mismatch, self.cov_mismatch_all)
+        return self.cov_mismatch_all / (self.ensemble_size - 1)
 
     def has_converged(self, n_err, err):
         if n_err <= self.inverse_problem_params.tau*self.inverse_problem_params.eta:
@@ -221,6 +230,15 @@ class EnsembleKalmanFilter:
         _consensus = np.zeros(shape=_consensus_me.shape)
         self._mpi_reduce(_consensus_me, _consensus)
         return _consensus[0] / self.ensemble_size
+
+    def _curve_ids(self):
+        interior_bc = DirichletBC(self.shooter.MomentumSpace, 1, CURVE_TAG)
+        f = Function(self.shooter.MomentumSpace)
+        interior_bc.apply(f)
+        return f.dat.data.nonzero()[0]
+
+    def momentum_data(self):
+        return self.momentum.dat.data[self.curve_data_indices]
 
     def info(self, msg):
         if self._rank == 0:
