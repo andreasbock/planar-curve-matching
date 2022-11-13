@@ -9,8 +9,6 @@ if __name__ == "__main__":
     shooting_parameters = ShootingParameters()
     shooting_parameters.time_steps = 2
     inverse_problem_parameters = InverseProblemParameters()
-    inverse_problem_parameters.optimise_momentum = True
-    inverse_problem_parameters.optimise_parameterisation = True
     process_per_ensemble_member = 1
     ensemble_object = Ensemble(COMM_WORLD, M=process_per_ensemble_member)
 
@@ -21,7 +19,6 @@ if __name__ == "__main__":
         shapes=['circle'],
         momentum_names=['contract', 'squeeze', 'teardrop'],
         resolutions=[0.5],
-        landmarks=[20],
     )
 
     # run EKI over all manufactured solutions
