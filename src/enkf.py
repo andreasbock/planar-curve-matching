@@ -1,4 +1,4 @@
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass
 import numpy as np  # for pickle, don't remove!
 
 from firedrake import *
