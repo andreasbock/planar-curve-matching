@@ -25,9 +25,6 @@ class InverseProblemParameters:
     dynamic_regularisation: bool = False
     max_iter_regularisation: int = 40
 
-    def dump(self, logger):
-        pass
-
 
 class EnsembleKalmanFilter:
     def __init__(
