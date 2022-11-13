@@ -18,18 +18,13 @@ target_marker = 'd'
 target_linestyle = '-.'
 target_label = 'Target'
 
-reparam_marker = '.'
-reparam_linestyle = '-'
-reparam_label = r'$\nu$'
-
 momentum_marker = 'x'
 momentum_linestyle = 'dotted'
 momentum_label = r'$\mathbf{p}$'
 
 
 def plot_consensus(res_dir: Path):
-    vnames = {'momentum': 'Consensus (momentum)',
-              'theta': 'Consensus (parameterisation)'}
+    vnames = {'momentum': 'Consensus (momentum)'}
 
     def _plot_consensus(var):
         if os.path.isfile(res_dir / 'consensuses_{}'.format(var)):
@@ -46,9 +41,8 @@ def plot_consensus(res_dir: Path):
             return consensuses
 
     cm = _plot_consensus('momentum')
-    ct = _plot_consensus('theta')
 
-    return cm, ct
+    return cm
 
 
 def plot_errors(res_dir: Path):
@@ -76,21 +70,18 @@ def plot_errors(res_dir: Path):
         plt.clf()
 
     errors_path_momentum = res_dir / 'relative_error_momentum'
-    errors_path_reparam = res_dir / 'relative_error_param'
     print(r'Plotting relative error...')
     plt.figure()
     errors_momentum = utils.pload(errors_path_momentum)
-    errors_reparam = utils.pload(errors_path_reparam)
     plt.grid()
     plt.xlabel('Iteration')
     plt.ylabel(r'Relative error')
     plt.semilogy(range(1, len(errors_momentum) + 1), errors_momentum, label='Momentum')
-    plt.semilogy(range(1, len(errors_reparam) + 1), errors_reparam, label='Reparam.')
     plt.legend(loc='best')
     plt.savefig(res_dir / 'relative_error.pdf')
     plt.clf()
 
-    return errors_momentum, errors_reparam, errors
+    return errors_momentum, errors
 
 
 def plot_shape_means(res_dir: Path):
@@ -108,8 +99,8 @@ def plot_shape_means(res_dir: Path):
         q_mean = utils.pload(res_dir / (prefix + str(i)))
         q_means.append(q_mean)
 
-    target = utils.pload(res_dir / "target")
-    target = np.append(target, [target[0, :]], axis=0)
+    #target = utils.pload(res_dir / "target")
+    #target = np.append(target, [target[0, :]], axis=0)
 
     # plot pickles
     print("Plotting all means together...")
@@ -244,20 +235,16 @@ def plot_landmarks(lms: np.array, label: str, linestyle: str, marker: str, path:
 
 def plot_momentum(xs: np.array, ns: np.array, path: Path):
     plt.figure()
-    plt.plot(xs, ns, label=reparam_label, linestyle=reparam_linestyle, marker=reparam_marker)
+    plt.plot(xs, ns, label=momentum_label, linestyle=momentum_linestyle, marker=momentum_marker)
     plt.legend(loc='best')
     plt.savefig(str(path))
     plt.close()
 
 
-def plot_initial_data(path: Path, xs: np.array, ns: np.array = None, ms: np.array = None):
+def plot_initial_data(path: Path, xs: np.array, ms: np.array = None):
     fig, ax = plt.subplots()
     ax.set_xlabel(r'$\theta$')
     lns = None
-    if ns is not None:
-        ln_ns = ax.plot(xs, ns, label=reparam_label, linestyle=reparam_linestyle)
-        lns = ln_ns
-        ax.set_ylabel(r'$\nu(\theta)$')
     if ms is not None:
         from matplotlib.ticker import FormatStrFormatter
         ax2 = ax.twinx()
@@ -268,7 +255,6 @@ def plot_initial_data(path: Path, xs: np.array, ns: np.array = None, ms: np.arra
         else:
             lns = ln_ms
 
-    #ax.legend(lns, [lb.get_label() for lb in lns], loc='best')
     plt.savefig(str(path))
     plt.close()
 
@@ -282,11 +268,9 @@ if __name__ == "__main__":
             continue
 
         shapes = []
-        err_rpms = []
         err_moms = []
         misfits = []
         cons_moms = []
-        cons_rpm = []
 
         # iterate through realisations of the solutions
         ps = list(pp.glob('*'))
@@ -297,17 +281,15 @@ if __name__ == "__main__":
             #    print(f"Skipping {p}, already plotted these.")
             #    continue
 
-            cm, ct = plot_consensus(p)
+            cm = plot_consensus(p)
             cons_moms.append(cm)
-            cons_rpm.append(ct)
 
-            mf, re_reparam, misfit = plot_errors(p)
+            mf, misfit = plot_errors(p)
             misfits.append(misfit)
             err_moms.append(mf)
-            err_rpms.append(re_reparam)
 
-            shape, target = plot_shape_means(p)
-            shapes.append(shape)
+            #shape, target = plot_shape_means(p)
+            #shapes.append(shape)
 
             plot_alphas(p)
 
@@ -324,16 +306,6 @@ if __name__ == "__main__":
             fig_consensus_momentum.savefig(pp / 'consensuses_momentum_avg.pdf')
             fig_consensus_momentum.clf()
 
-            fig_consensus_reparam = plt.figure()
-            ax_cons_rpm = fig_consensus_reparam.add_subplot(111)
-            for ct in cons_rpm:
-                ax_cons_rpm.plot(range(1, len(ct) + 1), ct)
-            ax_cons_rpm.grid()
-            ax_cons_rpm.set_xlabel('Iteration')
-            ax_cons_rpm.set_ylabel('Consensus (parameterisation)')
-            ax_cons_rpm.set_xlim(left=1, right=len(ct))
-            fig_consensus_reparam.savefig(pp / 'consensuses_reparam_avg.pdf')
-            fig_consensus_reparam.clf()
             plt.clf()
             plt.close()
 
@@ -351,17 +323,6 @@ if __name__ == "__main__":
             plt.clf()
             plt.close()
 
-            fig_err_rpm = plt.figure()
-            ax_err_rpm = fig_err_rpm.add_subplot(111)
-            for mf in err_rpms:
-                ax_err_rpm.plot(range(1, len(mf) + 1), mf)
-            ax_err_rpm.grid()
-            ax_err_rpm.set_xlabel('Iteration')
-            ax_err_rpm.set_ylabel('Relative error (parameterisation)')
-            ax_err_mom.set_xlim(left=1, right=len(re_reparam))
-            fig_err_rpm.savefig(pp / 'relative-error_reparam_avg.pdf')
-            fig_err_rpm.clf()
-            plt.close()
 
             fig_err_misfit = plt.figure()
             ax_err_misfit = fig_err_misfit.add_subplot(111)
@@ -370,21 +331,22 @@ if __name__ == "__main__":
             ax_err_misfit.grid()
             ax_err_misfit.set_xlabel('Iteration')
             ax_err_misfit.set_ylabel('Data misfit')
-            ax_err_mom.set_xlim(left=1, right=len(re_reparam))
-            fig_err_misfit.savefig(pp / 'misfits.pdf')
+            ax_err_mom.set_xlim(left=1, right=len(mf))
+            fig_err_misfit.savefig(pp / 'data_misfits.pdf')
             fig_err_misfit.clf()
             plt.close()
 
-            plt.figure()
-            for shape in shapes:
-                plt.plot(shape[:, 0], shape[:, 1], linewidth=0.3)
-            plt.plot(target[:, 0], target[:, 1], marker=target_marker, linestyle=target_linestyle, label=target_label)
-            plt.grid()
-            plt.xlabel('$x$')
-            plt.ylabel('$y$')
-            plt.legend(loc='best')
-            plt.savefig(pp / 'shapes_avg.pdf')
-            plt.clf()
-            plt.close()
+            if False:
+                plt.figure()
+                for shape in shapes:
+                    plt.plot(shape[:, 0], shape[:, 1], linewidth=0.3)
+                plt.plot(target[:, 0], target[:, 1], marker=target_marker, linestyle=target_linestyle, label=target_label)
+                plt.grid()
+                plt.xlabel('$x$')
+                plt.ylabel('$y$')
+                plt.legend(loc='best')
+                plt.savefig(pp / 'shapes_avg.pdf')
+                plt.clf()
+                plt.close()
 
 
