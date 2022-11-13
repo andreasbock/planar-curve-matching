@@ -134,7 +134,7 @@ class EnsembleKalmanFilter:
         new_mesh = Mesh(Function(self.shooter.VCG1).interpolate(curve_result.diffeo), comm=self.shooter.communicator)
         indicator_moved = Function(
             functionspaceimpl.WithGeometry.create(self.shooter.shape_function.function_space(), new_mesh),
-            val=self.shooter.shape_function.topological
+            val=self.shooter.shape_function.topological,
         )
         self.shape = Function(self.shooter.DG).project(indicator_moved)
 
