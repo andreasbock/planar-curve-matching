@@ -52,7 +52,7 @@ class EnsembleKalmanFilter:
 
         self.momentum = self.shooter.momentum_function()
         self.momentum_mean = self.shooter.momentum_function()
-        self.momentum_centered = np.empty(shape=dim_momentum_data)
+        self.momentum_centered = self.shooter.momentum_function()
 
         self.mismatch = Function(self.shooter.DG)
         self.mismatch_local = Function(self.shooter.DG)
