@@ -17,7 +17,7 @@ if __name__ == "__main__":
     manufactured_solutions = get_solutions(
         shapes=['circle'],
         momentum_names=['contract', 'squeeze', 'teardrop'],
-        resolutions=[0.5],
+        resolutions=[1],
     )
 
     # run EKI over all manufactured solutions
