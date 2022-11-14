@@ -172,3 +172,18 @@ def compute_facet_area(mesh):
     facetarea_solver = LinearVariationalSolver(facetarea_problem)
     facetarea_solver.solve()
     return h
+
+
+def csr_localisation(mesh: Mesh, tolerance: float):
+    f = Function(VectorFunctionSpace(mesh, "DG", 0, dim=2)).interpolate(SpatialCoordinate(mesh))
+    fd = f.dat.data
+    rows, cols = [], []
+    within = lambda x, y: np.linalg.norm(x - y) <= tolerance
+
+    for i in range(len(fd)):
+        for j in range(len(fd)):
+            if within(fd[i], fd[j]):
+                rows.append(i)
+                cols.append(j)
+
+    return rows, cols
