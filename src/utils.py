@@ -188,3 +188,15 @@ def csr_localisation(mesh: Mesh, tolerance: float):
                 cols.append(j)
 
     return rows, cols
+
+
+def my_heaviside(f):
+    def _my_heaviside(x):
+        if x > .9:
+            return 1
+        if x < .1:
+            return 0
+        return x
+
+    for i, data in enumerate(f.dat.data):
+        f.dat.data[i] = _my_heaviside(data)

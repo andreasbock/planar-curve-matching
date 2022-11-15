@@ -43,17 +43,8 @@ if __name__ == "__main__":
                     val=shooter.shape_function.topological
                 )
 
-                def my_heaviside(x):
-                    if x > .9:
-                        return 1
-                    if x < .1:
-                        return 0
-                    return x
-
                 indicator_moved_original_mesh = Function(shooter.ShapeSpace).project(indicator_moved)
-                for i, data in enumerate(indicator_moved_original_mesh.dat.data):
-                    indicator_moved_original_mesh.dat.data[i] = my_heaviside(data)
-
+                utils.my_heaviside(indicator_moved_original_mesh)
                 utils.plot_curves(indicator_moved_original_mesh, path / f"{mesh_path.stem}_{momentum.name}.pdf")
 
                 # dump the solution
