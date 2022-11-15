@@ -43,9 +43,9 @@ class EnsembleKalmanFilter:
         self._rank = self.ensemble.ensemble_comm.Get_rank()
 
         # initialise dynamic member variables
-        self.shape = Function(self.shooter.DG)
-        self.shape_mean = Function(self.shooter.DG)
-        self.shape_centered = Function(self.shooter.DG)
+        self.shape = Function(self.shooter.ShapeSpace)
+        self.shape_mean = Function(self.shooter.ShapeSpace)
+        self.shape_centered = Function(self.shooter.ShapeSpace)
 
         self.curve_data_indices = self._curve_ids()
         dim_momentum_data = len(self.curve_data_indices)
