@@ -158,7 +158,7 @@ class EnsembleKalmanFilter:
             val=self.shooter.shape_function.topological,
         )
         self.shape.project(indicator_moved)
-        self.shape.dat.data[:] = np.heaviside(self.shape.dat.data, 0)
+        utils.my_heaviside(self.shape)
 
         # compute ensemble means
         self._compute_shape_mean()
