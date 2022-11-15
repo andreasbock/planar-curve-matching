@@ -4,7 +4,7 @@ from src.manufactured_solutions import get_solutions, MANUFACTURED_SOLUTIONS_MOM
 
 if __name__ == "__main__":
     # parameters
-    max_iterations = 10
+    max_iterations = 5
     shooting_parameters = ShootingParameters()
     inverse_problem_parameters = InverseProblemParameters()
     process_per_ensemble_member = 1
