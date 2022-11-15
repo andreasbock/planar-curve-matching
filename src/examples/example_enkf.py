@@ -1,7 +1,6 @@
 from src.enkf import *
 from src.shooting import ShootingParameters
-from src.manufactured_solutions import get_solutions
-
+from src.manufactured_solutions import get_solutions, MANUFACTURED_SOLUTIONS_MOMENTUM_NAMES
 
 if __name__ == "__main__":
     # parameters
@@ -16,7 +15,7 @@ if __name__ == "__main__":
 
     manufactured_solutions = get_solutions(
         shapes=['circle'],
-        momentum_names=['contract', 'squeeze', 'teardrop'],
+        momentum_names=MANUFACTURED_SOLUTIONS_MOMENTUM_NAMES,
         resolutions=[1],
     )
 
