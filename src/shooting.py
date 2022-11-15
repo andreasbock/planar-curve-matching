@@ -60,7 +60,7 @@ class GeodesicShooter:
         self.XW = VectorFunctionSpace(self.mesh, "WXRobH3NC", degree=7, dim=2)
         self.XW_scalar = FunctionSpace(self.mesh, "WXRobH3NC", degree=7)
         self.XW_tensor = TensorFunctionSpace(self.mesh, "WXRobH3NC", degree=7, shape=(2, 2))
-        self.DG = FunctionSpace(self.mesh, "DG", 0)
+        self.ShapeSpace = FunctionSpace(self.mesh, "CG", 1)
         VDGT = VectorFunctionSpace(self.mesh, "DGT", degree=0, dim=2)  # for shape normal
         self.XW_approx = VectorFunctionSpace(self.mesh, "DG", degree=7, dim=2)
         self.VCG1 = VectorFunctionSpace(self.mesh, "CG", degree=1, dim=2)  # for coordinate fields

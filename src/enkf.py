@@ -54,8 +54,8 @@ class EnsembleKalmanFilter:
         self.momentum_mean = self.shooter.momentum_function()
         self.momentum_centered = self.shooter.momentum_function()
 
-        self.mismatch = Function(self.shooter.DG)
-        self.mismatch_local = Function(self.shooter.DG)
+        self.mismatch = Function(self.shooter.ShapeSpace)
+        self.mismatch_local = Function(self.shooter.ShapeSpace)
 
         self.gamma = None
         self.gamma_inv = None

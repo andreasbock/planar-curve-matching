@@ -53,7 +53,7 @@ if __name__ == "__main__":
         initial_momentum = enkf.shooter.momentum_function().assign(random_part)
 
         # perturb reparam
-        target = Function(enkf.shooter.DG, manufactured_solution.target)
+        target = Function(enkf.shooter.ShapeSpace, manufactured_solution.target)
 
         # run the EKI
         enkf.run_filter(
