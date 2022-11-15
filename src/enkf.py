@@ -231,6 +231,7 @@ class EnsembleKalmanFilter:
     def _compute_shape_mean(self):
         self.ensemble.allreduce(self.shape, self.shape_mean)
         self.shape_mean.assign(self.shape_mean * self.mean_normaliser)
+        utils.my_heaviside(self.shape_mean)
 
     def _compute_momentum_mean(self):
         self.ensemble.allreduce(self.momentum, self.momentum_mean)
