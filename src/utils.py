@@ -117,6 +117,7 @@ def plot_curves(u, path: Path, levels: int = 50):
     axes.set_aspect("equal")
     fig.colorbar(contours)
     fig.savefig(path)
+    plt.close()
 
 
 def shape_function(mesh: firedrake.Mesh, mesh_tag: int, dim=2):

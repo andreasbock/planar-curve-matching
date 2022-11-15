@@ -37,7 +37,7 @@ def plot_consensus(res_dir: Path):
             plt.ylabel(vnames[var])
             plt.plot(range(1, len(consensuses) + 1), consensuses)
             plt.savefig(res_dir / 'consensuses_{}.pdf'.format(var))
-            plt.clf()
+            plt.close()
             return consensuses
 
     cm = _plot_consensus('momentum')
@@ -79,7 +79,7 @@ def plot_errors(res_dir: Path):
     plt.semilogy(range(1, len(errors_momentum) + 1), errors_momentum, label='Momentum')
     plt.legend(loc='best')
     plt.savefig(res_dir / 'relative_error.pdf')
-    plt.clf()
+    plt.close()
 
     return errors_momentum, errors
 
@@ -169,7 +169,7 @@ def plot_mismatch(res_dir: Path):
     plt.plot(target[:, 0], target[:, 1], 'd:', label='Target')
     plt.legend(loc='best')
     plt.savefig(res_dir / 'mismatch.pdf')
-    plt.clf()
+    plt.close()
 
 
 def plot_theta_means(res_dir: Path):
@@ -209,7 +209,7 @@ def plot_theta_means(res_dir: Path):
         plt.plot(t_truth[:, 0], t_truth[:, 1], 'd:')
 
     plt.savefig(res_dir / 't_means.pdf')
-    plt.clf()
+    plt.close()
 
 
 def plot_alphas(res_dir: Path):
@@ -221,7 +221,7 @@ def plot_alphas(res_dir: Path):
         plt.ylabel(r'$\ln(\alpha_n)$')
         plt.semilogy(range(1, len(alphas) + 1), alphas)
         plt.savefig(res_dir / 'alphas.pdf')
-        plt.clf()
+        plt.close()
 
 
 def plot_landmarks(lms: np.array, label: str, linestyle: str, marker: str, path: Path):
