@@ -68,6 +68,23 @@ class EnsembleKalmanFilter:
         self.xcorr_momentum = np.empty((dim_momentum_data, cov_sz))
         self.xcorr_momentum_all = np.empty(shape=self.xcorr_momentum.shape)
 
+        u, v = TrialFunction(self.shooter.ShapeSpace), TestFunction(self.shooter.ShapeSpace)
+        a_form = (u * v + 0.01 * inner(grad(u), grad(v))) * dx
+        self.mismatch_smooth = Function(self.shooter.ShapeSpace)
+        lvp = LinearVariationalProblem(a=a_form, L=self.mismatch*v*dx, u=self.mismatch_smooth, bcs=DirichletBC(self.shooter.ShapeSpace, 0, "on_boundary"))
+        self.lvs = LinearVariationalSolver(lvp)
+
+        self.mismatch_local_smooth = Function(self.shooter.ShapeSpace)
+        lvp_local = LinearVariationalProblem(a=a_form, L=self.mismatch_local*v*dx, u=self.mismatch_local_smooth, bcs=DirichletBC(self.shooter.ShapeSpace, 0, "on_boundary"))
+        self.lvs_local = LinearVariationalSolver(lvp_local)
+
+    def compute_mismatch(self, target: Function):
+        self.mismatch.assign(target - self.shape_mean)
+        self.mismatch_local.assign(target - self.shape)
+
+        self.lvs.solve()
+        self.lvs_local.solve()
+
     def run_filter(
         self,
         momentum: Function,
@@ -93,15 +110,15 @@ class EnsembleKalmanFilter:
         while iteration < max_iterations:
             self.info(f"Iteration {iteration}: predicting...")
             self.predict()
-            self.mismatch.assign(target - self.shape_mean)
+            self.compute_mismatch(target)
 
-            new_error = self.error_norm(self.mismatch)
+            new_error = norm(self.mismatch_smooth)
             self.info(f"Iteration {iteration}: Error norm: {new_error}")
             consensus_momentum = self._consensus_momentum(self.momentum_mean)
             # log everything
             if self._rank == 0:
                 utils.plot_curves(self.shape_mean, self._logger.logger_dir / f"shape_mean_iter={iteration}.pdf")
-                utils.plot_curves(self.mismatch, self._logger.logger_dir / f"mismatch_iter={iteration}.pdf")
+                utils.plot_curves(self.mismatch_smooth, self._logger.logger_dir / f"mismatch_iter={iteration}.pdf")
                 consensuses_momentum.append(consensus_momentum)
                 if momentum_truth is not None:
                     relative_momentum_norm = np.sqrt(assemble((self.momentum('+') - self.momentum_mean('+')) ** 2 * dS(CURVE_TAG)))
@@ -114,7 +131,6 @@ class EnsembleKalmanFilter:
                 break
             else:
                 self.shape_centered.assign(self.shape - self.shape_mean)
-                self.mismatch_local.assign(target - self.shape)
 
                 cw_alpha_gamma_inv, alpha = self.compute_cw_operator()
                 shape_update = np.dot(cw_alpha_gamma_inv, self.mismatch_local.dat.data)
