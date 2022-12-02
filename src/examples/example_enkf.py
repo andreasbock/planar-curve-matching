@@ -22,7 +22,8 @@ if __name__ == "__main__":
     # run EKI over all manufactured solutions
     for manufactured_solution in manufactured_solutions:
         # set up logging
-        path = EXAMPLES_ENKF_PATH / manufactured_solution.name() / f"REALISATION_{utils.date_string()}"
+        timestamp = utils.date_string_parallel(ensemble_object.ensemble_comm)
+        path = EXAMPLES_ENKF_PATH / manufactured_solution.name() / f"REALISATION_{timestamp}"
         logger = utils.Logger(
             path / "example_enkf.log", ensemble_object.ensemble_comm
         )

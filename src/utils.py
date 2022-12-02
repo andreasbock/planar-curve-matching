@@ -3,6 +3,7 @@ import firedrake
 from firedrake import *
 import logging as _logging
 from datetime import datetime
+import time
 import pickle
 import os
 from pathlib import Path
@@ -16,6 +17,14 @@ plt.rc('font', family='serif')
 
 def project_root() -> Path:
     return Path(__file__).parent.parent
+
+
+def date_string_parallel(comm):
+    timestamp = 0
+    if comm.Get_rank() == 0:
+        timestamp = int(time.mktime(datetime.now().timetuple()))
+    timestamp = comm.bcast(timestamp, root=0)
+    return datetime.fromtimestamp(timestamp).strftime("%Y-%m-%d|%H.%M.%S")
 
 
 def date_string():
