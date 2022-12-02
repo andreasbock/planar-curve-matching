@@ -35,7 +35,7 @@ def plot_consensus(res_dir: Path):
             plt.grid()
             plt.xlabel('Iteration')
             plt.ylabel(vnames[var])
-            plt.plot(range(1, len(consensuses) + 1), consensuses)
+            plt.semilogy(range(1, len(consensuses) + 1), consensuses)
             plt.savefig(res_dir / 'consensuses_{}.pdf'.format(var))
             plt.close()
             return consensuses
@@ -172,46 +172,6 @@ def plot_mismatch(res_dir: Path):
     plt.close()
 
 
-def plot_theta_means(res_dir: Path):
-    # count pickles
-    num_t_means = 0
-    prefix = "t_mean_iter="
-    for fn in os.listdir(res_dir):
-        if fn.startswith(prefix):
-            num_t_means += 1
-    print("Number of t_mean files:", num_t_means)
-
-    # load pickles
-    t_means = []
-    for i in range(num_t_means):
-        t_mean = utils.pload(res_dir / (prefix + str(i)))
-        t_means.append(t_mean)
-
-    # plot pickles
-    print("Plotting theta means...")
-    plt.grid()
-    plt.xlabel('$x$')
-    plt.ylabel('$y$')
-    circ = lambda t: np.array([np.cos(t), np.sin(t)])
-    j = 0
-    while j < num_t_means:
-        t_means_shape = np.array(list(map(circ, t_means[j])))
-        shape = np.append(t_means_shape, [t_means_shape[0, :]], axis=0)
-        plt.plot(shape[:, 0], shape[:, 1])
-        j += 1
-
-    truth_path = res_dir / "t_truth"
-
-    if truth_path.exists():
-        t_truth = utils.pload(truth_path)
-        t_truth = np.array(list(map(circ, t_truth)))
-        t_truth = np.append(t_truth, [t_truth[0, :]], axis=0)
-        plt.plot(t_truth[:, 0], t_truth[:, 1], 'd:')
-
-    plt.savefig(res_dir / 't_means.pdf')
-    plt.close()
-
-
 def plot_alphas(res_dir: Path):
     if os.path.isfile(res_dir / 'alphas'):
         print(r'Plotting $\alphas$...')
@@ -296,7 +256,8 @@ if __name__ == "__main__":
             ax_cons_mom = fig_consensus_momentum.add_subplot(111)
             ax_cons_mom.grid()
             for cm in cons_moms:
-                ax_cons_mom.plot(range(1, len(cm) + 1), cm)
+                ax_cons_mom.semilogy(range(1, len(cm) + 1), cm)
+            ax_cons_mom.set_xticks(list(map(int, list(range(1, len(cm) + 1)))))
             ax_cons_mom.set_xlabel('Iteration')
             ax_cons_mom.set_ylabel('Consensus (momentum)')
             ax_cons_mom.set_xlim(left=1, right=len(cm))
@@ -310,8 +271,12 @@ if __name__ == "__main__":
             fig_err_mom = plt.figure()
             ax_err_mom = fig_err_mom.add_subplot(111)
             ax_err_mom.grid()
+            xs = list(range(1, len(mf) + 1))
+            xs = list(map(int, xs))
             for mf in err_moms:
-                ax_err_mom.plot(range(1, len(mf) + 1), mf)
+                ax_err_mom.semilogy(xs, mf)
+            ax_err_mom.set_xticks(xs)
+
             ax_err_mom.set_xlabel('Iteration')
             ax_err_mom.set_ylabel('Relative error (momentum)')
             ax_err_mom.set_xlim(left=1, right=len(mf))
@@ -327,22 +292,8 @@ if __name__ == "__main__":
             ax_err_misfit.grid()
             ax_err_misfit.set_xlabel('Iteration')
             ax_err_misfit.set_ylabel('Data misfit')
-            ax_err_mom.set_xlim(left=1, right=len(mf))
+            ax_err_misfit.set_xticks(list(map(int, list(range(1, len(mf) + 1)))))
+            ax_err_misfit.set_xlim(left=1, right=len(mf))
             fig_err_misfit.savefig(pp / 'data_misfits.pdf')
             fig_err_misfit.clf()
             plt.close()
-
-            if False:
-                plt.figure()
-                for shape in shapes:
-                    plt.plot(shape[:, 0], shape[:, 1], linewidth=0.3)
-                plt.plot(target[:, 0], target[:, 1], marker=target_marker, linestyle=target_linestyle, label=target_label)
-                plt.grid()
-                plt.xlabel('$x$')
-                plt.ylabel('$y$')
-                plt.legend(loc='best')
-                plt.savefig(pp / 'shapes_avg.pdf')
-                plt.clf()
-                plt.close()
-
-
