@@ -277,21 +277,18 @@ if __name__ == "__main__":
         for p in ps:
             if not p.is_dir():
                 continue
-            #if (p / "shape_means.pdf").exists():
-            #    print(f"Skipping {p}, already plotted these.")
-            #    continue
-
-            cm = plot_consensus(p)
+            data_dir = "data"
+            cm = plot_consensus(p / data_dir)
             cons_moms.append(cm)
 
-            mf, misfit = plot_errors(p)
+            mf, misfit = plot_errors(p / data_dir)
             misfits.append(misfit)
             err_moms.append(mf)
 
             #shape, target = plot_shape_means(p)
             #shapes.append(shape)
 
-            plot_alphas(p)
+            plot_alphas(p / data_dir)
 
         # Plot aggregation over realisations
         if len(ps) > 0:
@@ -322,7 +319,6 @@ if __name__ == "__main__":
             fig_err_mom.clf()
             plt.clf()
             plt.close()
-
 
             fig_err_misfit = plt.figure()
             ax_err_misfit = fig_err_misfit.add_subplot(111)

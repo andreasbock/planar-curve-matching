@@ -19,7 +19,7 @@ class InverseProblemParameters:
     rho: float = 0.9  # \rho \in (0, 1)
     tau: float = 1 / 0.9 + 1e-04  # \tau > 1/\rho (!)
     gamma_scale: float = 1  # observation variance
-    eta: float = 1e-03  # noise limit, equals ||\Lambda^{0.5}(q1-G(.))||
+    eta: float = 1e-03  # noise limit, equals ||\Lambda^{0.5}(q1 - G(.))||
     relative_tolerance: float = 1e-03  # relative error to previous iteration
     sample_covariance_regularisation: float = 0.01  # alpha_0 regularisation parameter
     dynamic_regularisation: bool = False
@@ -144,11 +144,11 @@ class EnsembleKalmanFilter:
             previous_error = new_error
             iteration += 1
         if self._rank == 0:
-            utils.pdump(errors, self._logger.logger_dir / "errors")
-            utils.pdump(relative_error_momentum, self._logger.logger_dir / "relative_error_momentum")
-            utils.pdump(alphas, self._logger.logger_dir / "alphas")
-            utils.pdump(consensuses_momentum, self._logger.logger_dir / "consensuses_momentum")
-            utils.pdump(self.momentum_mean.dat.data, self._logger.logger_dir / "momentum_mean_converged")
+            utils.pdump(errors, self._logger.logger_data_dir / "errors")
+            utils.pdump(relative_error_momentum, self._logger.logger_data_dir / "relative_error_momentum")
+            utils.pdump(alphas, self._logger.logger_data_dir / "alphas")
+            utils.pdump(consensuses_momentum, self._logger.logger_data_dir / "consensuses_momentum")
+            utils.pdump(self.momentum_mean.dat.data, self._logger.logger_data_dir / "momentum_mean_converged")
 
         final_curve_result = self.shooter.shoot(self.momentum_mean)
         new_mesh = Mesh(Function(self.shooter.VCG1).interpolate(final_curve_result.diffeo))
@@ -156,7 +156,7 @@ class EnsembleKalmanFilter:
             functionspaceimpl.WithGeometry.create(self.shooter.shape_function.function_space(), new_mesh),
             val=self.shooter.shape_function.topological
         )
-        File(self._logger.logger_dir / f"{self.shooter.mesh_path.stem}_converged.pvd").write(
+        File(self._logger.logger_data_dir / f"{self.shooter.mesh_path.stem}_converged.pvd").write(
             indicator_moved
         )
 
@@ -239,7 +239,7 @@ class EnsembleKalmanFilter:
         self.info(f"Ensemble size: {self.ensemble_size}.")
         self.info(f"{self.inverse_problem_params}")
         self.shooter.dump_parameters()
-        File(self._logger.logger_dir / 'target.pvd').write(target)
+        File(self._logger.logger_data_dir / 'target.pvd').write(target)
 
     def _mpi_reduce(self, f, reduced):
         self.ensemble.ensemble_comm.Allreduce(f, reduced, op=MPI.SUM)

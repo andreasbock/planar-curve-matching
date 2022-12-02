@@ -42,7 +42,8 @@ class Logger:
     def __init__(self, logger_path: Path, communicator=None):
         self.log_path = logger_path
         self.logger_dir: Path = self.log_path.parent
-        self.logger_dir.mkdir(parents=True, exist_ok=True)
+        self.logger_data_dir = self.logger_dir / "data"
+        self.logger_data_dir.mkdir(parents=True, exist_ok=True)
         self._logger = basic_logger(logger_path)
         self._communicator = communicator
 
