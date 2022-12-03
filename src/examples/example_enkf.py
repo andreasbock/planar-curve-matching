@@ -1,10 +1,10 @@
 from src.enkf import *
 from src.shooting import ShootingParameters
-from src.manufactured_solutions import get_solutions, MANUFACTURED_SOLUTIONS_MOMENTUM_NAMES
+from src.manufactured_solutions import get_solutions
 
 if __name__ == "__main__":
     # parameters
-    max_iterations = 5
+    max_iterations = 6
     shooting_parameters = ShootingParameters()
     inverse_problem_parameters = InverseProblemParameters()
     process_per_ensemble_member = 1
@@ -15,8 +15,8 @@ if __name__ == "__main__":
 
     manufactured_solutions = get_solutions(
         shapes=['circle'],
-        momentum_names=MANUFACTURED_SOLUTIONS_MOMENTUM_NAMES,
-        resolutions=[1],
+        momentum_names=["contract", "squeeze", "teardrop"],
+        resolutions=[0.75],
     )
 
     # run EKI over all manufactured solutions
