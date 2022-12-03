@@ -271,10 +271,10 @@ if __name__ == "__main__":
             fig_err_mom = plt.figure()
             ax_err_mom = fig_err_mom.add_subplot(111)
             ax_err_mom.grid()
-            xs = list(range(1, len(mf) + 1))
+            xs = list(range(1, len(err_moms[0]) + 1))
             xs = list(map(int, xs))
             for mf in err_moms:
-                ax_err_mom.semilogy(xs, mf)
+                ax_err_mom.semilogy(xs[:len(mf)], mf)
             ax_err_mom.set_xticks(xs)
 
             ax_err_mom.set_xlabel('Iteration')
