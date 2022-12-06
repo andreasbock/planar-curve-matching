@@ -122,7 +122,6 @@ class EnsembleKalmanFilter:
                 utils.plot_curves(
                     self.mismatch_smooth,
                     self._logger.logger_dir / f"mismatch_iter={iteration}.pdf",
-                    colourbar=True,
                 )
                 consensuses_momentum.append(consensus_momentum)
                 if momentum_truth is not None:
