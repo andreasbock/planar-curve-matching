@@ -68,7 +68,7 @@ class EnsembleKalmanFilter:
         self.xcorr_momentum = np.empty((dim_momentum_data, cov_sz))
         self.xcorr_momentum_all = np.empty(shape=self.xcorr_momentum.shape)
 
-        kappa = 0.01
+        kappa = 0.001
         u, v = TrialFunction(self.shooter.ShapeSpace), TestFunction(self.shooter.ShapeSpace)
         a_form = (u * v + kappa * inner(grad(u), grad(v))) * dx
         self.mismatch_smooth = Function(self.shooter.ShapeSpace)
@@ -178,7 +178,6 @@ class EnsembleKalmanFilter:
             val=self.shooter.shape_function.topological,
         )
         self.shape.project(indicator_moved)
-        utils.my_heaviside(self.shape)
 
         # compute ensemble means
         self._compute_shape_mean()
@@ -251,7 +250,6 @@ class EnsembleKalmanFilter:
     def _compute_shape_mean(self):
         self.ensemble.allreduce(self.shape, self.shape_mean)
         self.shape_mean.assign(self.shape_mean * self.mean_normaliser)
-        utils.my_heaviside(self.shape_mean)
 
     def _compute_momentum_mean(self):
         self.ensemble.allreduce(self.momentum, self.momentum_mean)
