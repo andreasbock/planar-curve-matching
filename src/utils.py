@@ -123,9 +123,6 @@ def pload(name):
 def plot_curves(u, path: Path, colourbar: bool = False):
     plt.figure()
     tricontourf(u)
-    if colourbar:
-        ax = plt.gca()  # get the current axes
-        plt.colorbar(ax.get_children()[2], ax=ax)
     plt.savefig(path)
     plt.close()
 
