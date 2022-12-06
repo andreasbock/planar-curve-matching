@@ -119,7 +119,11 @@ class EnsembleKalmanFilter:
             # log everything
             if self._rank == 0:
                 utils.plot_curves(self.shape_mean, self._logger.logger_dir / f"shape_mean_iter={iteration}.pdf")
-                utils.plot_curves(self.mismatch_smooth, self._logger.logger_dir / f"mismatch_iter={iteration}.pdf")
+                utils.plot_curves(
+                    self.mismatch_smooth,
+                    self._logger.logger_dir / f"mismatch_iter={iteration}.pdf",
+                    colourbar=True,
+                )
                 consensuses_momentum.append(consensus_momentum)
                 if momentum_truth is not None:
                     relative_momentum_norm = np.sqrt(assemble((self.momentum('+') - self.momentum_mean('+')) ** 2 * dS(CURVE_TAG)))

@@ -120,9 +120,11 @@ def pload(name):
     return f
 
 
-def plot_curves(u, path: Path):
+def plot_curves(u, path: Path, colourbar: bool = False):
     plt.figure()
     tricontourf(u)
+    if colourbar:
+        plt.colorbar()
     plt.savefig(path)
     plt.close()
 
