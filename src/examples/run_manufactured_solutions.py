@@ -56,4 +56,5 @@ if __name__ == "__main__":
                 )
                 mf.dump(path)
                 logger.info(f"Wrote solution to {path / mf.name()}.")
-                File(path / f"{mesh_path.stem}_{momentum.name}.pvd").write(indicator_moved_original_mesh)
+                File(path / f"{mesh_path.stem}_{momentum.name}.pvd").write(indicator_moved)
+                File(path / f"{mesh_path.stem}_{momentum.name}_original_mesh.pvd").write(indicator_moved_original_mesh)
