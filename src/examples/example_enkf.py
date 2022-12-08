@@ -15,7 +15,7 @@ if __name__ == "__main__":
 
     manufactured_solutions = get_solutions(
         shapes=['circle'],
-        momentum_names=["contract", "squeeze", "teardrop"],
+        momentum_names=["squeeze", "teardrop", "contract"],
         resolutions=[0.75],
     )
 
