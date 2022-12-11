@@ -38,7 +38,7 @@ if __name__ == "__main__":
                 shooter = GeodesicShooter(logger, mesh_path, template, shooting_parameters)
 
                 curve_result = shooter.shoot(momentum)
-                new_mesh = Mesh(Function(shooter.VCG1).project(curve_result.diffeo))
+                new_mesh = Mesh(Function(shooter.VCG1).interpolate(curve_result.diffeo))
                 indicator_moved = Function(
                     functionspaceimpl.WithGeometry.create(shooter.shape_function.function_space(), new_mesh),
                     val=shooter.shape_function.topological
