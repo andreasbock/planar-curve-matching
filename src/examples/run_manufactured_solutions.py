@@ -23,6 +23,7 @@ if __name__ == "__main__":
     for template in CURVES:
         for resolution in MESH_RESOLUTIONS:
             logger.info(f"Generating mesh for curve: '{template.name}' with resolution: h={resolution}.")
+            logger.info(f"Shooting parameters: {shooting_parameters}.")
 
             mesh_params = MeshGenerationParameters(mesh_size=resolution)
             mesh_path = generate_mesh(mesh_params, template, MANUFACTURED_SOLUTIONS_PATH)
@@ -37,8 +38,7 @@ if __name__ == "__main__":
                 shooter = GeodesicShooter(logger, mesh_path, template, shooting_parameters)
 
                 curve_result = shooter.shoot(momentum)
-
-                new_mesh = Mesh(Function(shooter.VCG1).interpolate(curve_result.diffeo))
+                new_mesh = Mesh(Function(shooter.VCG1).project(shooter.phi))
                 indicator_moved = Function(
                     functionspaceimpl.WithGeometry.create(shooter.shape_function.function_space(), new_mesh),
                     val=shooter.shape_function.topological
