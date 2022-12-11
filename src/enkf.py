@@ -71,12 +71,10 @@ class EnsembleKalmanFilter:
         self.kappa = 0.001
         u, v = TrialFunction(self.shooter.ShapeSpace), TestFunction(self.shooter.ShapeSpace)
         a_form = (u * v + self.kappa * inner(grad(u), grad(v))) * dx
-        self.mismatch_smooth = Function(self.shooter.ShapeSpace)
-        lvp = LinearVariationalProblem(a=a_form, L=self.mismatch*v*dx, u=self.mismatch_smooth, bcs=DirichletBC(self.shooter.ShapeSpace, 0, "on_boundary"))
+        lvp = LinearVariationalProblem(a=a_form, L=self.mismatch*v*dx, u=self.mismatch, bcs=DirichletBC(self.shooter.ShapeSpace, 0, "on_boundary"))
         self.lvs = LinearVariationalSolver(lvp)
 
-        self.mismatch_local_smooth = Function(self.shooter.ShapeSpace)
-        lvp_local = LinearVariationalProblem(a=a_form, L=self.mismatch_local*v*dx, u=self.mismatch_local_smooth, bcs=DirichletBC(self.shooter.ShapeSpace, 0, "on_boundary"))
+        lvp_local = LinearVariationalProblem(a=a_form, L=self.mismatch_local*v*dx, u=self.mismatch_local, bcs=DirichletBC(self.shooter.ShapeSpace, 0, "on_boundary"))
         self.lvs_local = LinearVariationalSolver(lvp_local)
 
     def compute_mismatch(self, target: Function):
@@ -113,14 +111,14 @@ class EnsembleKalmanFilter:
             self.predict()
             self.compute_mismatch(target)
 
-            new_error = norm(self.mismatch_smooth)
+            new_error = norm(self.mismatch)
             self.info(f"Iteration {iteration}: Error norm: {new_error}")
             consensus_momentum = self._consensus_momentum(self.momentum_mean)
             # log everything
             if self._rank == 0:
                 utils.plot_curves(self.shape_mean, self._logger.logger_dir / f"shape_mean_iter={iteration}.pdf")
                 utils.plot_curves(
-                    self.mismatch_smooth,
+                    self.mismatch,
                     self._logger.logger_dir / f"mismatch_iter={iteration}.pdf",
                 )
                 consensuses_momentum.append(consensus_momentum)
