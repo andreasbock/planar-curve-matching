@@ -274,7 +274,8 @@ if __name__ == "__main__":
             xs = list(range(1, len(err_moms[0]) + 1))
             xs = list(map(int, xs))
             for mf in err_moms:
-                ax_err_mom.semilogy(xs[:len(mf)], mf)
+                _xs = xs[:len(mf)]
+                ax_err_mom.semilogy(_xs, mf[:len(_xs)])
             ax_err_mom.set_xticks(xs)
 
             ax_err_mom.set_xlabel('Iteration')
