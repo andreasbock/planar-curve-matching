@@ -68,9 +68,9 @@ class EnsembleKalmanFilter:
         self.xcorr_momentum = np.empty((dim_momentum_data, cov_sz))
         self.xcorr_momentum_all = np.empty(shape=self.xcorr_momentum.shape)
 
-        kappa = 0.001
+        self.kappa = 0.001
         u, v = TrialFunction(self.shooter.ShapeSpace), TestFunction(self.shooter.ShapeSpace)
-        a_form = (u * v + kappa * inner(grad(u), grad(v))) * dx
+        a_form = (u * v + self.kappa * inner(grad(u), grad(v))) * dx
         self.mismatch_smooth = Function(self.shooter.ShapeSpace)
         lvp = LinearVariationalProblem(a=a_form, L=self.mismatch*v*dx, u=self.mismatch_smooth, bcs=DirichletBC(self.shooter.ShapeSpace, 0, "on_boundary"))
         self.lvs = LinearVariationalSolver(lvp)
