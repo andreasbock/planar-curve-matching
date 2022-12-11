@@ -184,11 +184,11 @@ class EnsembleKalmanFilter:
     def _correct_momentum(self, shape_update):
         self.ensemble.ensemble_comm.Barrier()
         self.momentum_centered.assign(self.momentum - self.momentum_mean)
-        local_C_pw = np.outer(self.momentum_centered.dat.data, self.shape_centered.dat.data)
+        local_C_pw = np.outer(self.momentum_centered.dat.data[self.curve_data_indices], self.shape_centered.dat.data)
         C_pw = np.empty(shape=local_C_pw.shape)
         self._mpi_reduce(local_C_pw, C_pw)
         C_pw /= self.ensemble_size - 1
-        self.momentum.dat.data[:] += np.dot(C_pw, shape_update)
+        self.momentum.dat.data[self.curve_data_indices] += np.dot(C_pw, shape_update)
 
     def compute_cw_operator(self):
         rhs = self.inverse_problem_params.rho * self.error_norm(self.mismatch)
@@ -238,7 +238,8 @@ class EnsembleKalmanFilter:
 
     def dump_parameters(self, target=None):
         self.info(f"Ensemble size: {self.ensemble_size}.")
-        self.info(f"{self.inverse_problem_params}")
+        self.info(f"Inverse problem parameters: {self.inverse_problem_params}.")
+        self.info(f"Momentum dimension: {len(self.curve_data_indices)}.")
         self.shooter.dump_parameters()
         File(self._logger.logger_data_dir / 'target.pvd').write(target)
 
