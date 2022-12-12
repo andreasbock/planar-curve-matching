@@ -18,7 +18,7 @@ __all__ = [
 
 TEMPLATE_MESHES_PATH = utils.project_root() / "TEMPLATE_MESHES"
 MANUFACTURED_SOLUTIONS_PATH = utils.project_root() / "MANUFACTURED_SOLUTIONS"
-MESH_RESOLUTIONS = [0.75]
+MESH_RESOLUTIONS = [1]
 MomentumFunction = Any
 
 
