@@ -77,13 +77,6 @@ class EnsembleKalmanFilter:
         lvp_local = LinearVariationalProblem(a=a_form, L=self.mismatch_local*v*dx, u=self.mismatch_local, bcs=DirichletBC(self.shooter.ShapeSpace, 0, "on_boundary"))
         self.lvs_local = LinearVariationalSolver(lvp_local)
 
-    def compute_mismatch(self, target: Function):
-        self.mismatch.assign(target - self.shape_mean)
-        self.mismatch_local.assign(target - self.shape)
-
-        self.lvs.solve()
-        self.lvs_local.solve()
-
     def run_filter(
         self,
         momentum: Function,
@@ -94,6 +87,9 @@ class EnsembleKalmanFilter:
         if momentum_truth is not None:
             norm_momentum_truth = np.sqrt(assemble((momentum_truth('+')) ** 2 * dS(CURVE_TAG)))
 
+        self.mismatch.assign(target)
+        self.lvs.solve()
+        target.assign(self.mismatch)
         self.dump_parameters(target)
         self.momentum.assign(momentum)
         eye = np.eye(product(target.dat.data.shape), dtype='float')
@@ -116,11 +112,8 @@ class EnsembleKalmanFilter:
             consensus_momentum = self._consensus_momentum(self.momentum_mean)
             # log everything
             if self._rank == 0:
-                utils.plot_curves(self.shape_mean, self._logger.logger_dir / f"shape_mean_iter={iteration}.pdf")
-                utils.plot_curves(
-                    self.mismatch,
-                    self._logger.logger_dir / f"mismatch_iter={iteration}.pdf",
-                )
+                utils.plot_curves(self.shape_mean, self._logger.logger_dir / f"shape_mean_iter={iteration}.eps")
+                utils.plot_curves(self.mismatch, self._logger.logger_dir / f"mismatch_iter={iteration}.eps")
                 consensuses_momentum.append(consensus_momentum)
                 if momentum_truth is not None:
                     relative_momentum_norm = np.sqrt(assemble((self.momentum('+') - self.momentum_mean('+')) ** 2 * dS(CURVE_TAG)))
@@ -133,7 +126,6 @@ class EnsembleKalmanFilter:
                 break
             else:
                 self.shape_centered.assign(self.shape - self.shape_mean)
-
                 cw_alpha_gamma_inv, alpha = self.compute_cw_operator()
                 shape_update = np.dot(cw_alpha_gamma_inv, self.mismatch_local.dat.data)
 
@@ -171,6 +163,12 @@ class EnsembleKalmanFilter:
         # shoot
         curve_result = self.shooter.shoot(self.momentum)
         new_mesh = Mesh(Function(self.shooter.VCG1).interpolate(curve_result.diffeo), comm=self.shooter.communicator)
+
+        # evaluate negative Sobolev norm first
+        self.mismatch_local.project(self.shooter.shape_function)
+        self.lvs_local.solve()
+        self.shooter.shape_function.project(self.mismatch_local)
+
         indicator_moved = Function(
             functionspaceimpl.WithGeometry.create(self.shooter.shape_function.function_space(), new_mesh),
             val=self.shooter.shape_function.topological,
@@ -180,6 +178,10 @@ class EnsembleKalmanFilter:
         # compute ensemble means
         self._compute_shape_mean()
         self._compute_momentum_mean()
+
+    def compute_mismatch(self, target: Function):
+        self.mismatch.assign(target - self.shape_mean)
+        self.mismatch_local.assign(target - self.shape)
 
     def _correct_momentum(self, shape_update):
         self.ensemble.ensemble_comm.Barrier()
