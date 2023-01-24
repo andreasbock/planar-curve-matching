@@ -70,6 +70,7 @@ class GeodesicShooter:
 
         self.orig_coords = self.mesh.coordinates.copy(deepcopy=True)
         self.diffeo = Function(self.mesh.coordinates.function_space())
+        self.diffeo_xw = Function(self.XW)
         # Velocity, momentum and diffeo
         self.u = Function(self.XW)
         self.w, self.z = Function(self.XW), Function(self.XW)
@@ -80,31 +81,29 @@ class GeodesicShooter:
 
     def shoot(self, momentum: Momentum):
         self.update_mesh(self.orig_coords)
-        self.diffeo.assign(self.orig_coords)
+        self.diffeo_xw.project(self.orig_coords)
         Dt = Constant(1 / self.parameters.time_steps)
 
         if not isinstance(momentum, Function):
             x, y = SpatialCoordinate(self.mesh)
             momentum = Function(self.MomentumSpace).interpolate(momentum.signal(x, y))
-
         self.momentum.assign(momentum)
 
         for t in range(self.parameters.time_steps):
             self.velocity_solve()
-            self.diffeo.assign(self.diffeo + Function(self.diffeo.function_space()).project(self.u * Dt))
+            self.diffeo_xw.assign(self.diffeo_xw + self.u * Dt)
+            self.diffeo.project(self.diffeo_xw)
             self.update_mesh(self.diffeo)
 
         # move the mesh for visualisation
-        soft_diffeo = project(self.diffeo, self.VCG1)
         return CurveResult(
-            diffeo=soft_diffeo,
+            diffeo=self.diffeo,
         )
 
     def velocity_solve(self):
         v, dv = TrialFunction(self.XW), TestFunction(self.XW)
 
-        momentum_form = dot(transpose(inv(grad(self.diffeo))), self.momentum * utils.shape_normal(self.mesh, self.VDGT))
-        #rhs = dot(as_vector(Constant(2*pi) * self.h_inv * momentum_form), dv)('+') * dS(CURVE_TAG)
+        momentum_form = dot(transpose(inv(grad(self.diffeo_xw))), self.momentum * utils.shape_normal(self.mesh, self.VDGT))
         rhs = dot(as_vector(Constant(2*pi) * momentum_form), dv)('+') * dS(CURVE_TAG)
 
         alp0, alp1, alp2, alp3 = 1, self.parameters.alpha, self.parameters.alpha**2, self.parameters.alpha**3
