@@ -122,7 +122,7 @@ def pload(name):
 
 def plot_curves(u, path: Path, colourbar: bool = False):
     plt.figure()
-    tricontourf(u)
+    tripcolor(u)
     plt.savefig(path)
     plt.close()
 
