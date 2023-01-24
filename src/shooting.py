@@ -78,10 +78,6 @@ class GeodesicShooter:
         # Functions we'll need for the source term/visualisation
         self.shape_function = utils.shape_function(self.mesh, INNER_TAG)
 
-        #v, dv = TrialFunction(self.XW), TestFunction(self.XW)
-        #solve((inner(v, dv) + inner(grad(v), grad(dv))) * dx == inner(as_vector((1, 1)), dv) * dx, Function(self.XW))
-        #exit()
-
     def shoot(self, momentum: Momentum):
         self.update_mesh(self.orig_coords)
         self.diffeo.assign(self.orig_coords)
