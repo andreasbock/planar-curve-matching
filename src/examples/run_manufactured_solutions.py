@@ -1,6 +1,6 @@
 import numpy as np
 
-from firedrake import File, Mesh, Function, functionspaceimpl
+from firedrake import File, Mesh, Function, FunctionSpace
 
 from src import utils
 from src.curves import CURVES
@@ -32,19 +32,26 @@ if __name__ == "__main__":
                 template_and_momentum_name = f"{mesh_path.stem}_{momentum.name}"
                 path = mesh_path.parent / template_and_momentum_name
                 path.mkdir(exist_ok=True)
-
-                # logging
                 logger.info(f"Logging to `{path}`.")
+
+                # shoot
                 shooter = GeodesicShooter(logger, mesh_path, template, shooting_parameters)
-
                 curve_result = shooter.shoot(momentum)
-                new_mesh = Mesh(Function(shooter.VCG1).interpolate(curve_result.diffeo))
-                indicator_moved = Function(
-                    functionspaceimpl.WithGeometry.create(shooter.shape_function.function_space(), new_mesh),
-                    val=shooter.shape_function.topological
-                )
 
-                indicator_moved_original_mesh = Function(shooter.ShapeSpace).project(indicator_moved)
+                # set up original mesh & function space
+                original_mesh = Mesh(shooter.orig_coords)
+                Lagrange_original_mesh = FunctionSpace(original_mesh, "CG", shooter.order_XW)
+
+                # evaluate the moved indicator on the original mesh
+                indicator_moved_original_mesh = Function(
+                    Lagrange_original_mesh,
+                    shooter.shape_function.at(
+                        original_mesh.coordinates.dat.data_ro,
+                        tolerance=1e-03,
+                        dont_raise=True,
+                    )
+                )
+                indicator_moved_original_mesh.dat.data[:] = np.nan_to_num(indicator_moved_original_mesh.dat.data[:])
                 utils.my_heaviside(indicator_moved_original_mesh)
                 utils.plot_curves(indicator_moved_original_mesh, path / f"{mesh_path.stem}_{momentum.name}.pdf")
 
@@ -57,5 +64,5 @@ if __name__ == "__main__":
                 )
                 mf.dump(path)
                 logger.info(f"Wrote solution to {path / mf.name()}.")
-                File(path / f"{mesh_path.stem}_{momentum.name}.pvd").write(indicator_moved)
+                File(path / f"{mesh_path.stem}_{momentum.name}.pvd").write(shooter.shape_function)
                 File(path / f"{mesh_path.stem}_{momentum.name}_original_mesh.pvd").write(indicator_moved_original_mesh)
