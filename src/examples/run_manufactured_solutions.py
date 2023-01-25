@@ -51,7 +51,10 @@ if __name__ == "__main__":
                         dont_raise=True,
                     )
                 )
-                indicator_moved_original_mesh.dat.data[:] = np.nan_to_num(indicator_moved_original_mesh.dat.data[:], nan=1.)
+                indicator_moved_original_mesh.dat.data[:] = np.nan_to_num(
+                    indicator_moved_original_mesh.dat.data[:],
+                    nan=1.0,
+                )
                 utils.my_heaviside(indicator_moved_original_mesh)
                 utils.plot_curves(indicator_moved_original_mesh, path / f"{mesh_path.stem}_{momentum.name}.pdf")
 
