@@ -145,7 +145,7 @@ class EnsembleKalmanFilter:
             utils.pdump(self.momentum_mean.dat.data, self._logger.logger_data_dir / "momentum_mean_converged")
 
         final_curve_result = self.shooter.shoot(self.momentum_mean)
-        new_mesh = Mesh(Function(self.shooter.VCG1).interpolate(final_curve_result.diffeo))
+        new_mesh = Mesh(Function(self.shooter.VCG1).interpolate(final_curve_result.diffeo), comm=self.shooter.communicator)
         indicator_moved = Function(
             functionspaceimpl.WithGeometry.create(self.shooter.shape_function.function_space(), new_mesh),
             val=self.shooter.shape_function.topological
