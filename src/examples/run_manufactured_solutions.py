@@ -39,14 +39,14 @@ if __name__ == "__main__":
                 curve_result = shooter.shoot(momentum)
 
                 # set up original mesh & function space
-                original_mesh = Mesh(shooter.orig_coords)
+                original_mesh = Mesh(shooter.orig_coords_XW_order, comm=shooter.communicator)
                 Lagrange_original_mesh = FunctionSpace(original_mesh, "CG", shooter.order_XW)
 
                 # evaluate the moved indicator on the original mesh
                 indicator_moved_original_mesh = Function(
-                    Lagrange_original_mesh,
+                    shooter.ShapeSpace,
                     shooter.shape_function.at(
-                        original_mesh.coordinates.dat.data_ro,
+                        shooter.orig_coords.dat.data_ro,
                         tolerance=1e-03,
                         dont_raise=True,
                     )
