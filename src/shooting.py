@@ -65,8 +65,8 @@ class GeodesicShooter:
         self.orig_coords = mesh_order_mismatch.coordinates.copy(deepcopy=True)
         self.h_inv = inv(utils.compute_facet_area(self.mesh))
 
-        self.Langrange_XW = VectorFunctionSpace(self.mesh, "CG", degree=self.order_XW, dim=2)  # for coordinate fields
-        self.mesh = Mesh(Function(self.Langrange_XW).interpolate(self.mesh.coordinates), comm=self.communicator)
+        self.Lagrange_XW = VectorFunctionSpace(self.mesh, "CG", degree=self.order_XW, dim=2)  # for coordinate fields
+        self.mesh = Mesh(Function(self.Lagrange_XW).interpolate(self.mesh.coordinates), comm=self.communicator)
         self.VDGT = VectorFunctionSpace(self.mesh, "DGT", degree=self.parameters.momentum_degree, dim=2)  # for momentum
         self.XW = VectorFunctionSpace(self.mesh, "WXH3NC", degree=self.order_XW, dim=2)
         self.VCG1 = VectorFunctionSpace(self.mesh, "CG", degree=1, dim=2)  # for coordinate fields
