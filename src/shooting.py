@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from numpy import nan_to_num
 from typing import Type, List, Any
 
 import firedrake
@@ -59,13 +60,14 @@ class GeodesicShooter:
         # Function spaces
         self.order_XW = 4
         self.order_mismatch = 4
-        self.CG_order_mismatch = VectorFunctionSpace(self.mesh, "CG", self.order_mismatch)
-        mesh_order_mismatch = Mesh(Function(self.CG_order_mismatch).interpolate(self.mesh.coordinates), comm=self.communicator)
-        self.ShapeSpace = FunctionSpace(mesh_order_mismatch, "CG", self.order_mismatch)
-        self.orig_coords = mesh_order_mismatch.coordinates.copy(deepcopy=True)
+        self.CG_order_mismatch = VectorFunctionSpace(self.mesh, "CG", self.order_mismatch, dim=2)
         self.h_inv = inv(utils.compute_facet_area(self.mesh))
 
         self.Lagrange_XW = VectorFunctionSpace(self.mesh, "CG", degree=self.order_XW, dim=2)  # for coordinate fields
+        self.original_mesh = Mesh(Function(self.Lagrange_XW).interpolate(self.mesh.coordinates), comm=self.communicator)
+        self.orig_coords = self.original_mesh.coordinates.copy(deepcopy=True)
+        self.ShapeSpace = FunctionSpace(self.original_mesh, "CG", self.order_mismatch)
+
         self.mesh = Mesh(Function(self.Lagrange_XW).interpolate(self.mesh.coordinates), comm=self.communicator)
         self.VDGT = VectorFunctionSpace(self.mesh, "DGT", degree=self.parameters.momentum_degree, dim=2)  # for momentum
         self.XW = VectorFunctionSpace(self.mesh, "WXH3NC", degree=self.order_XW, dim=2)
@@ -125,6 +127,23 @@ class GeodesicShooter:
     def update_mesh(self, coords):
         self.mesh.coordinates.assign(coords)
         self.mesh.clear_spatial_index()
+
+    def shape_function_initial_mesh(self):
+        # evaluate the moved indicator on the original mesh
+        indicator_moved_original_mesh = Function(
+            self.ShapeSpace,
+            self.shape_function.at(
+                self.orig_coords.dat.data_ro,
+                tolerance=1e-03,
+                dont_raise=True,
+            )
+        )
+        indicator_moved_original_mesh.dat.data[:] = nan_to_num(
+            indicator_moved_original_mesh.dat.data[:],
+            nan=1.0,
+        )
+        utils.my_heaviside(indicator_moved_original_mesh)
+        return indicator_moved_original_mesh
 
 
 class AxisAlignedDirichletBC(DirichletBC):

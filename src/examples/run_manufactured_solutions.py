@@ -36,26 +36,26 @@ if __name__ == "__main__":
 
                 # shoot
                 shooter = GeodesicShooter(logger, mesh_path, template, shooting_parameters)
-                curve_result = shooter.shoot(momentum)
+                shooter.shoot(momentum)
 
-                # set up original mesh & function space
-                original_mesh = Mesh(shooter.orig_coords_XW_order, comm=shooter.communicator)
-                Lagrange_original_mesh = FunctionSpace(original_mesh, "CG", shooter.order_XW)
-
-                # evaluate the moved indicator on the original mesh
-                indicator_moved_original_mesh = Function(
-                    shooter.ShapeSpace,
-                    shooter.shape_function.at(
-                        shooter.orig_coords.dat.data_ro,
-                        tolerance=1e-03,
-                        dont_raise=True,
-                    )
-                )
-                indicator_moved_original_mesh.dat.data[:] = np.nan_to_num(
-                    indicator_moved_original_mesh.dat.data[:],
-                    nan=1.0,
-                )
-                utils.my_heaviside(indicator_moved_original_mesh)
+                # # set up original mesh & function space
+                # original_mesh = Mesh(shooter.orig_coords_XW_order, comm=shooter.communicator)
+                #
+                # # evaluate the moved indicator on the original mesh
+                # indicator_moved_original_mesh = Function(
+                #     shooter.ShapeSpace,
+                #     shooter.shape_function.at(
+                #         shooter.orig_coords.dat.data_ro,
+                #         tolerance=1e-03,
+                #         dont_raise=True,
+                #     )
+                # )
+                # indicator_moved_original_mesh.dat.data[:] = np.nan_to_num(
+                #     indicator_moved_original_mesh.dat.data[:],
+                #     nan=1.0,
+                # )
+                # utils.my_heaviside(indicator_moved_original_mesh)
+                indicator_moved_original_mesh = shooter.shape_function_initial_mesh()
                 utils.plot_curves(indicator_moved_original_mesh, path / f"{mesh_path.stem}_{momentum.name}.pdf")
 
                 # dump the solution
