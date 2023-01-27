@@ -242,6 +242,7 @@ class EnsembleKalmanFilter:
         self.info(f"Ensemble size: {self.ensemble_size}.")
         self.info(f"Inverse problem parameters: {self.inverse_problem_params}.")
         self.info(f"Momentum dimension: {len(self.curve_data_indices)}.")
+        self.info(f"Shape space dimension: {self.shooter.ShapeSpace.dof_count}.")
         self.shooter.dump_parameters()
         File(self._logger.logger_data_dir / 'target.pvd').write(target)
 
