@@ -29,7 +29,7 @@ class ShootingParameters:
     )
     momentum_degree: int = 0
     alpha: float = 0.5
-    time_steps: int = 10
+    time_steps: int = 20
 
 
 @dataclass
@@ -58,7 +58,7 @@ class GeodesicShooter:
 
         # Function spaces
         self.order_XW = 4
-        self.order_mismatch = 2
+        self.order_mismatch = 4
         self.CG_order_mismatch = VectorFunctionSpace(self.mesh, "CG", self.order_mismatch)
         mesh_order_mismatch = Mesh(Function(self.CG_order_mismatch).interpolate(self.mesh.coordinates), comm=self.communicator)
         self.ShapeSpace = FunctionSpace(mesh_order_mismatch, "CG", self.order_mismatch)
