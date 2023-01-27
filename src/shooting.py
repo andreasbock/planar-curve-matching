@@ -145,15 +145,5 @@ def trihelmholtz(v, dv, alp0=1., alp1=1., alp2=1., alp3=1.):
             ) * dx
 
 
-def h1_form(v, dv, J_inv, detJ, alpha):
-    gradJ = lambda w: dot(grad(w), J_inv)
-
-    vx, vy = v
-    dvx, dvy = dv
-
-    a = (inner(v, dv) + alpha * (inner(gradJ(vx), gradJ(dvx)) + inner(gradJ(vy), gradJ(dvy)))) * detJ * dx
-    return a, lambda f: inner(f, dv) * detJ * dx
-
-
 def delta(u):
     return div(grad(u))
