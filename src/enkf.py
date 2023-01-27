@@ -112,8 +112,8 @@ class EnsembleKalmanFilter:
             consensus_momentum = self._consensus_momentum(self.momentum_mean)
             # log everything
             if self._rank == 0:
-                utils.plot_curves(self.shape_mean, self._logger.logger_dir / f"shape_mean_iter={iteration}.eps")
-                utils.plot_curves(self.mismatch, self._logger.logger_dir / f"mismatch_iter={iteration}.eps")
+                utils.plot_curves(self.shape_mean, self._logger.logger_dir / f"shape_mean_iter={iteration}.pdf")
+                utils.plot_curves(self.mismatch, self._logger.logger_dir / f"mismatch_iter={iteration}.pdf")
                 consensuses_momentum.append(consensus_momentum)
                 if momentum_truth is not None:
                     relative_momentum_norm = np.sqrt(assemble((self.momentum('+') - self.momentum_mean('+')) ** 2 * dS(CURVE_TAG)))
@@ -144,14 +144,8 @@ class EnsembleKalmanFilter:
             utils.pdump(consensuses_momentum, self._logger.logger_data_dir / "consensuses_momentum")
             utils.pdump(self.momentum_mean.dat.data, self._logger.logger_data_dir / "momentum_mean_converged")
 
-        final_curve_result = self.shooter.shoot(self.momentum_mean)
-        new_mesh = Mesh(Function(self.shooter.VCG1).interpolate(final_curve_result.diffeo), comm=self.shooter.communicator)
-        indicator_moved = Function(
-            functionspaceimpl.WithGeometry.create(self.shooter.shape_function.function_space(), new_mesh),
-            val=self.shooter.shape_function.topological
-        )
         File(self._logger.logger_data_dir / f"{self.shooter.mesh_path.stem}_converged.pvd").write(
-            indicator_moved
+            self.shooter.shape_function_initial_mesh()
         )
 
         if iteration > max_iterations:
@@ -161,8 +155,8 @@ class EnsembleKalmanFilter:
         self.ensemble.ensemble_comm.Barrier()
 
         # shoot
-        curve_result = self.shooter.shoot(self.momentum)
-        new_mesh = Mesh(Function(self.shooter.VCG1).interpolate(curve_result.diffeo), comm=self.shooter.communicator)
+        self.shooter.shoot(self.momentum)
+        self.shape = self.shooter.shape_function_initial_mesh()
 
         # evaluate negative Sobolev norm first
         self.mismatch_local.project(self.shooter.shape_function)

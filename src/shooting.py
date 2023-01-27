@@ -33,13 +33,6 @@ class ShootingParameters:
     time_steps: int = 20
 
 
-@dataclass
-class CurveResult:
-    diffeo: firedrake.Function
-    velocity_norms: List[Any] = None
-    momentum_norms: List[Any] = None
-
-
 class GeodesicShooter:
     def __init__(
         self,
