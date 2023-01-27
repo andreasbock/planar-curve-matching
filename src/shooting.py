@@ -57,17 +57,18 @@ class GeodesicShooter:
         self._solver_parameters = self.parameters.velocity_solver_parameters
         self.template = template
 
+        self.h_inv = inv(utils.compute_facet_area(self.mesh))  # TODO: used?
+
         # Function spaces
         self.order_XW = 4
-        self.order_mismatch = 4
+        self.order_mismatch = 1
+
+        # initial mesh, for mismatch
         self.CG_order_mismatch = VectorFunctionSpace(self.mesh, "CG", self.order_mismatch, dim=2)
-        self.h_inv = inv(utils.compute_facet_area(self.mesh))
+        self.initial_mesh = Mesh(Function(self.CG_order_mismatch).interpolate(self.mesh.coordinates), comm=self.communicator)
+        self.ShapeSpace = FunctionSpace(self.initial_mesh, "CG", self.order_mismatch)
 
         self.Lagrange_XW = VectorFunctionSpace(self.mesh, "CG", degree=self.order_XW, dim=2)  # for coordinate fields
-        self.original_mesh = Mesh(Function(self.Lagrange_XW).interpolate(self.mesh.coordinates), comm=self.communicator)
-        self.orig_coords = self.original_mesh.coordinates.copy(deepcopy=True)
-        self.ShapeSpace = FunctionSpace(self.original_mesh, "CG", self.order_mismatch)
-
         self.mesh = Mesh(Function(self.Lagrange_XW).interpolate(self.mesh.coordinates), comm=self.communicator)
         self.VDGT = VectorFunctionSpace(self.mesh, "DGT", degree=self.parameters.momentum_degree, dim=2)  # for momentum
         self.XW = VectorFunctionSpace(self.mesh, "WXH3NC", degree=self.order_XW, dim=2)
@@ -75,7 +76,7 @@ class GeodesicShooter:
         self.MomentumSpace = FunctionSpace(self.mesh, "DGT", self.parameters.momentum_degree)  # for momentum signal
         self.velocity_bcs = AxisAlignedDirichletBC(self.XW, Function(self.XW), "on_boundary")
 
-        self.orig_coords_XW_order = self.mesh.coordinates.copy(deepcopy=True)
+        self.XW_order_orig_coords = self.mesh.coordinates.copy(deepcopy=True)
         self.diffeo = Function(self.mesh.coordinates.function_space())  # don't use `self.Lagrange_XW` where, libsupermesh complains!
         self.diffeo_xw = Function(self.XW)
         # Velocity, momentum and diffeo
@@ -87,8 +88,8 @@ class GeodesicShooter:
         self.shape_function = utils.shape_function(self.mesh, INNER_TAG)
 
     def shoot(self, momentum: Momentum):
-        self.update_mesh(self.orig_coords_XW_order)
-        self.diffeo_xw.project(self.orig_coords_XW_order)
+        self.update_mesh(self.XW_order_orig_coords)
+        self.diffeo_xw.project(self.XW_order_orig_coords)
         Dt = Constant(1 / self.parameters.time_steps)
 
         if not isinstance(momentum, Function):
@@ -133,7 +134,7 @@ class GeodesicShooter:
         indicator_moved_original_mesh = Function(
             self.ShapeSpace,
             self.shape_function.at(
-                self.orig_coords.dat.data_ro,
+                self.initial_mesh.coordinates.dat.data_ro,
                 tolerance=1e-03,
                 dont_raise=True,
             )
