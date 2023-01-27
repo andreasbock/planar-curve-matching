@@ -96,11 +96,6 @@ class GeodesicShooter:
             self.diffeo.project(self.diffeo_xw)
             self.update_mesh(self.diffeo)
 
-        # move the mesh for visualisation
-        return CurveResult(
-            diffeo=self.diffeo,
-        )
-
     def velocity_solve(self):
         v, dv = TrialFunction(self.XW), TestFunction(self.XW)
 
