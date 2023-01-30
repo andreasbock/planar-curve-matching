@@ -80,6 +80,19 @@ class GeodesicShooter:
         # Functions we'll need for the source term/visualisation
         self.shape_function = utils.shape_function(self.mesh, INNER_TAG)
 
+        # Smoothing mismatch
+        self.kappa = 0.1  # how much to smoothen
+
+    def smoothen_shape(self, shape_function: Function):
+        shape_space = shape_function.function_space()
+        v, dv = TrialFunction(shape_space), TestFunction(shape_space)
+        a = (inner(v, dv) + self.kappa * inner(grad(v), grad(dv))) * dx
+        rhs = inner(shape_function, dv) * dx
+
+        smooth_function = Function(shape_space)
+        solve(a == rhs, smooth_function, bcs=DirichletBC(shape_space, 0., "on_boundary"))
+        return smooth_function
+
     def shoot(self, momentum: Momentum):
         self.update_mesh(self.XW_order_orig_coords)
         self.diffeo_xw.project(self.XW_order_orig_coords)
@@ -112,16 +125,20 @@ class GeodesicShooter:
 
     def dump_parameters(self):
         self._logger.info(f"{self.parameters}")
+        self._logger.info(f"kappa = {self.kappa}")
 
     def update_mesh(self, coords):
         self.mesh.coordinates.assign(coords)
         self.mesh.clear_spatial_index()
 
     def shape_function_initial_mesh(self):
-        # evaluate the moved indicator on the original mesh
+        # smoothen the moved indicator
+        smooth_shape = self.smoothen_shape(self.shape_function)
+
+        # evaluate the smooth moved indicator on the original mesh
         indicator_moved_original_mesh = Function(
             self.ShapeSpace,
-            self.shape_function.at(
+            smooth_shape.at(
                 self.initial_mesh.coordinates.dat.data_ro,
                 tolerance=1e-03,
                 dont_raise=True,

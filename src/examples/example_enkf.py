@@ -6,6 +6,7 @@ if __name__ == "__main__":
     # parameters
     max_iterations = 6
     shooting_parameters = ShootingParameters()
+    shooting_parameters.time_steps = 40
     inverse_problem_parameters = InverseProblemParameters()
     process_per_ensemble_member = 1
     ensemble_object = Ensemble(COMM_WORLD, M=process_per_ensemble_member)

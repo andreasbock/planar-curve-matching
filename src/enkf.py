@@ -68,15 +68,6 @@ class EnsembleKalmanFilter:
         self.xcorr_momentum = np.empty((dim_momentum_data, cov_sz))
         self.xcorr_momentum_all = np.empty(shape=self.xcorr_momentum.shape)
 
-        self.kappa = 0.001
-        u, v = TrialFunction(self.shooter.ShapeSpace), TestFunction(self.shooter.ShapeSpace)
-        a_form = (u * v + self.kappa * inner(grad(u), grad(v))) * dx
-        lvp = LinearVariationalProblem(a=a_form, L=self.mismatch*v*dx, u=self.mismatch, bcs=DirichletBC(self.shooter.ShapeSpace, 0, "on_boundary"))
-        self.lvs = LinearVariationalSolver(lvp)
-
-        lvp_local = LinearVariationalProblem(a=a_form, L=self.mismatch_local*v*dx, u=self.mismatch_local, bcs=DirichletBC(self.shooter.ShapeSpace, 0, "on_boundary"))
-        self.lvs_local = LinearVariationalSolver(lvp_local)
-
     def run_filter(
         self,
         momentum: Function,
@@ -87,12 +78,11 @@ class EnsembleKalmanFilter:
         if momentum_truth is not None:
             norm_momentum_truth = np.sqrt(assemble((momentum_truth('+')) ** 2 * dS(CURVE_TAG)))
 
-        self.mismatch.assign(target)
-        self.lvs.solve()
-        target.assign(self.mismatch)
-        self.dump_parameters(target)
+        # smooth target using shooter
+        target_smooth = self.shooter.smoothen_shape(target)
+        self.dump_parameters(target_smooth)
         self.momentum.assign(momentum)
-        eye = np.eye(product(target.dat.data.shape), dtype='float')
+        eye = np.eye(product(target_smooth.dat.data.shape), dtype='float')
         self.gamma = eye * self.inverse_problem_params.gamma_scale
         self.gamma_inv = eye / self.inverse_problem_params.gamma_scale
 
@@ -103,16 +93,18 @@ class EnsembleKalmanFilter:
         iteration = 0
         previous_error = float("-inf")
         while iteration < max_iterations:
-            self.info(f"Iteration {iteration}: predicting...")
-            self.predict()
-            self.compute_mismatch(target)
+            self.info(f"Iteration {iteration} | Predicting...")
+            shape_mean_non_smooth = self.predict()
+            self.compute_mismatch(target_smooth)
 
             new_error = norm(self.mismatch)
-            self.info(f"Iteration {iteration}: Error norm: {new_error}")
+            self.info(f"Iteration {iteration} | Error norm: {new_error}")
             consensus_momentum = self._consensus_momentum(self.momentum_mean)
+            self.info(f"Iteration {iteration} | Consensus: {consensus_momentum}")
             # log everything
             if self._rank == 0:
-                utils.plot_curves(self.shape_mean, self._logger.logger_dir / f"shape_mean_iter={iteration}.pdf")
+                utils.plot_curves(self.shape_mean, self._logger.logger_dir / f"shape_mean_smooth_iter={iteration}.pdf")
+                utils.plot_curves(shape_mean_non_smooth, self._logger.logger_dir / f"shape_mean_iter={iteration}.pdf")
                 utils.plot_curves(self.mismatch, self._logger.logger_dir / f"mismatch_iter={iteration}.pdf")
                 consensuses_momentum.append(consensus_momentum)
                 if momentum_truth is not None:
@@ -129,7 +121,7 @@ class EnsembleKalmanFilter:
                 cw_alpha_gamma_inv, alpha = self.compute_cw_operator()
                 shape_update = np.dot(cw_alpha_gamma_inv, self.mismatch_local.dat.data)
 
-                self.info(f"Iteration {iteration}: correcting momentum...")
+                self.info(f"Iteration {iteration} | Correcting momentum...")
                 self._correct_momentum(shape_update)
                 if self._rank == 0:
                     alphas.append(alpha)
@@ -156,22 +148,17 @@ class EnsembleKalmanFilter:
 
         # shoot
         self.shooter.shoot(self.momentum)
+        # smooth shapes and compute mean
         self.shape = self.shooter.shape_function_initial_mesh()
-
-        # evaluate negative Sobolev norm first
-        self.mismatch_local.project(self.shooter.shape_function)
-        self.lvs_local.solve()
-        self.shooter.shape_function.project(self.mismatch_local)
-
-        indicator_moved = Function(
-            functionspaceimpl.WithGeometry.create(self.shooter.shape_function.function_space(), new_mesh),
-            val=self.shooter.shape_function.topological,
-        )
-        self.shape.project(indicator_moved)
+        self._compute_shape_mean()
 
         # compute ensemble means
-        self._compute_shape_mean()
         self._compute_momentum_mean()
+
+        # shoot with momentum mean
+        if self._rank == 0:
+            self.shooter.shoot(self.momentum_mean)
+            return self.shooter.shape_function.copy(deepcopy=True)
 
     def compute_mismatch(self, target: Function):
         self.mismatch.assign(target - self.shape_mean)
