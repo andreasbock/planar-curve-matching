@@ -80,6 +80,8 @@ class EnsembleKalmanFilter:
 
         # smooth target using shooter
         target_smooth = self.shooter.smoothen_shape(target)
+        File(self._logger.logger_dir / "target_smooth.pvd").write(target_smooth)
+
         self.dump_parameters(target_smooth)
         self.momentum.assign(momentum)
         eye = np.eye(product(target_smooth.dat.data.shape), dtype='float')
