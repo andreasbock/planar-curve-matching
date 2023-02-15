@@ -37,8 +37,8 @@ if __name__ == "__main__":
                 # shoot
                 shooter = GeodesicShooter(logger, mesh_path, template, shooting_parameters)
                 shooter.shoot(momentum)
-                indicator_moved_original_mesh = shooter.shape_function_initial_mesh()
-                utils.plot_curves(indicator_moved_original_mesh, path / f"{mesh_path.stem}_{momentum.name}.pdf")
+                indicator_moved_original_mesh = shooter.smooth_shape_function_initial_mesh()
+                utils.plot_curves(shooter.shape_function, path / f"{mesh_path.stem}_{momentum.name}.pdf")
 
                 # dump the solution
                 mf = ManufacturedSolution(
@@ -50,4 +50,6 @@ if __name__ == "__main__":
                 mf.dump(path)
                 logger.info(f"Wrote solution to {path / mf.name()}.")
                 File(path / f"{mesh_path.stem}_{momentum.name}.pvd").write(shooter.shape_function)
-                File(path / f"{mesh_path.stem}_{momentum.name}_original_mesh.pvd").write(indicator_moved_original_mesh)
+                File(path / f"{mesh_path.stem}_{momentum.name}_smooth_original_mesh.pvd").write(
+                    indicator_moved_original_mesh
+                )

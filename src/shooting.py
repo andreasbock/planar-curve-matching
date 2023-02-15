@@ -1,8 +1,7 @@
 from dataclasses import dataclass, field
 from numpy import nan_to_num
-from typing import Type, List, Any
+from typing import Type
 
-import firedrake
 from firedrake import *
 from pathlib import Path
 
@@ -50,8 +49,6 @@ class GeodesicShooter:
         self._solver_parameters = self.parameters.velocity_solver_parameters
         self.template = template
 
-        self.h_inv = inv(utils.compute_facet_area(self.mesh))  # TODO: used?
-
         # Function spaces
         self.order_XW = 4
         self.order_mismatch = 1
@@ -60,7 +57,8 @@ class GeodesicShooter:
         self.CG_order_mismatch = VectorFunctionSpace(self.mesh, "CG", self.order_mismatch, dim=2)
         self.initial_mesh = Mesh(Function(self.CG_order_mismatch).interpolate(self.mesh.coordinates), comm=self.communicator)
         self.ShapeSpace = FunctionSpace(self.initial_mesh, "CG", self.order_mismatch)
-
+        self.shape_moved_original_mesh = Function(self.ShapeSpace)
+        
         self.Lagrange_XW = VectorFunctionSpace(self.mesh, "CG", degree=self.order_XW, dim=2)  # for coordinate fields
         self.mesh = Mesh(Function(self.Lagrange_XW).interpolate(self.mesh.coordinates), comm=self.communicator)
         self.VDGT = VectorFunctionSpace(self.mesh, "DGT", degree=self.parameters.momentum_degree, dim=2)  # for momentum
@@ -68,29 +66,28 @@ class GeodesicShooter:
         self.VCG1 = VectorFunctionSpace(self.mesh, "CG", degree=1, dim=2)  # for coordinate fields
         self.MomentumSpace = FunctionSpace(self.mesh, "DGT", self.parameters.momentum_degree)  # for momentum signal
         self.velocity_bcs = AxisAlignedDirichletBC(self.XW, Function(self.XW), "on_boundary")
-
         self.XW_order_orig_coords = self.mesh.coordinates.copy(deepcopy=True)
-        self.diffeo = Function(self.mesh.coordinates.function_space())  # don't use `self.Lagrange_XW` where, libsupermesh complains!
-        self.diffeo_xw = Function(self.XW)
+
         # Velocity, momentum and diffeo
         self.u = Function(self.XW)
-        self.w, self.z = Function(self.XW), Function(self.XW)
         self.momentum = Function(self.MomentumSpace)
+        self.diffeo = Function(self.mesh.coordinates.function_space())  # don't use `self.Lagrange_XW` where, libsupermesh complains!
+        self.diffeo_xw = Function(self.XW)
 
         # Functions we'll need for the source term/visualisation
-        self.shape_function = utils.shape_function(self.mesh, INNER_TAG)
+        self.ShapeSpaceDG = FunctionSpace(self.mesh, "DG", 0)  # for visualisation
+        self.shape_function = utils.shape_function(self.ShapeSpaceDG, INNER_TAG)
 
-        # Smoothing mismatch
-        self.kappa = 0.1  # how much to smoothen
+        self.kappa = 10  # how much to smoothen
+        self.ShapeSpaceMovingMesh = FunctionSpace(self.mesh, "CG", self.order_mismatch)
+        self.smooth_shape_function = self.smoothen_shape(self.shape_function)
 
     def smoothen_shape(self, shape_function: Function):
-        shape_space = shape_function.function_space()
-        v, dv = TrialFunction(shape_space), TestFunction(shape_space)
+        v, dv = TrialFunction(self.ShapeSpaceMovingMesh), TestFunction(self.ShapeSpaceMovingMesh)
         a = (inner(v, dv) + self.kappa * inner(grad(v), grad(dv))) * dx
         rhs = inner(shape_function, dv) * dx
-
-        smooth_function = Function(shape_space)
-        solve(a == rhs, smooth_function, bcs=DirichletBC(shape_space, 0., "on_boundary"))
+        smooth_function = Function(self.ShapeSpaceMovingMesh)
+        solve(a == rhs, smooth_function, bcs=DirichletBC(self.ShapeSpaceMovingMesh, 0., "on_boundary"))
         return smooth_function
 
     def shoot(self, momentum: Momentum):
@@ -111,10 +108,11 @@ class GeodesicShooter:
 
     def velocity_solve(self):
         v, dv = TrialFunction(self.XW), TestFunction(self.XW)
-
-        momentum_form = dot(transpose(inv(grad(self.diffeo_xw))), self.momentum * utils.shape_normal(self.mesh, self.VDGT))
-        rhs = dot(as_vector(Constant(2*pi) * momentum_form), dv)('+') * dS(CURVE_TAG)
-
+        p = dot(
+            transpose(inv(grad(self.diffeo_xw))),
+            self.momentum * utils.shape_normal(self.mesh, self.VDGT)
+        )
+        rhs = inner(p, dv)('+') * dS(CURVE_TAG)
         alp0, alp1, alp2, alp3 = 1, self.parameters.alpha, self.parameters.alpha**2, self.parameters.alpha**3
         h3_form = trihelmholtz(v, dv, alp0, alp1, alp2, alp3)
         solve(h3_form == rhs, self.u, bcs=DirichletBC(self.XW, 0, "on_boundary"))
@@ -131,25 +129,21 @@ class GeodesicShooter:
         self.mesh.coordinates.assign(coords)
         self.mesh.clear_spatial_index()
 
-    def shape_function_initial_mesh(self):
-        # smoothen the moved indicator
-        smooth_shape = self.smoothen_shape(self.shape_function)
-
+    def smooth_shape_function_initial_mesh(self):
         # evaluate the smooth moved indicator on the original mesh
-        indicator_moved_original_mesh = Function(
-            self.ShapeSpace,
-            smooth_shape.at(
+        self.shape_moved_original_mesh.dat.data[:] = (
+            self.smooth_shape_function.at(
                 self.initial_mesh.coordinates.dat.data_ro,
                 tolerance=1e-03,
                 dont_raise=True,
             )
         )
-        indicator_moved_original_mesh.dat.data[:] = nan_to_num(
-            indicator_moved_original_mesh.dat.data[:],
-            nan=1.0,
+        self.shape_moved_original_mesh.dat.data[:] = nan_to_num(
+            self.shape_moved_original_mesh.dat.data[:],
+            nan=0.0,
         )
-        utils.my_heaviside(indicator_moved_original_mesh)
-        return indicator_moved_original_mesh
+        #utils.my_heaviside(self.shape_moved_original_mesh)
+        return self.shape_moved_original_mesh
 
 
 class AxisAlignedDirichletBC(DirichletBC):

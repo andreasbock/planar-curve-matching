@@ -2,7 +2,6 @@ from dataclasses import dataclass
 import numpy as np  # for pickle, don't remove!
 
 from firedrake import *
-from firedrake import functionspaceimpl
 from pyop2.mpi import MPI
 
 import src.utils as utils
@@ -20,7 +19,7 @@ class InverseProblemParameters:
     tau: float = 1 / 0.9 + 1e-04  # \tau > 1/\rho (!)
     gamma_scale: float = 1  # observation variance
     eta: float = 1e-03  # noise limit, equals ||\Lambda^{0.5}(q1 - G(.))||
-    relative_tolerance: float = 1e-03  # relative error to previous iteration
+    relative_tolerance: float = 1e-05  # relative error to previous iteration
     sample_covariance_regularisation: float = 0.001  # alpha_0 regularisation parameter
     dynamic_regularisation: bool = False
     max_iter_regularisation: int = 40
@@ -43,7 +42,7 @@ class EnsembleKalmanFilter:
         self._rank = self.ensemble.ensemble_comm.Get_rank()
 
         # initialise dynamic member variables
-        self.shape = Function(self.shooter.ShapeSpace)
+        self.shape = None
         self.shape_mean = Function(self.shooter.ShapeSpace)
         self.shape_centered = Function(self.shooter.ShapeSpace)
 
@@ -61,7 +60,7 @@ class EnsembleKalmanFilter:
         self.gamma_inv = None
         self.mean_normaliser = Constant(1 / self.ensemble_size)
 
-        cov_sz = len(self.shape.dat.data)
+        cov_sz = len(self.shape_mean.dat.data)
         self.cov_mismatch = np.empty((cov_sz, cov_sz))
         self.cov_mismatch_all = np.empty(shape=self.cov_mismatch.shape)
 
@@ -71,7 +70,7 @@ class EnsembleKalmanFilter:
     def run_filter(
         self,
         momentum: Function,
-        target: Function,
+        target: np.array,
         max_iterations: int,
         momentum_truth: Function = None,
     ):
@@ -79,8 +78,7 @@ class EnsembleKalmanFilter:
             norm_momentum_truth = np.sqrt(assemble((momentum_truth('+')) ** 2 * dS(CURVE_TAG)))
 
         # smooth target using shooter
-        target_smooth = self.shooter.smoothen_shape(target)
-        File(self._logger.logger_dir / "target_smooth.pvd").write(target_smooth)
+        target_smooth = Function(self.shooter.ShapeSpace, target)
 
         self.dump_parameters(target_smooth)
         self.momentum.assign(momentum)
@@ -96,7 +94,7 @@ class EnsembleKalmanFilter:
         previous_error = float("-inf")
         while iteration < max_iterations:
             self.info(f"Iteration {iteration} | Predicting...")
-            shape_mean_non_smooth = self.predict()
+            self.predict()
             self.compute_mismatch(target_smooth)
 
             new_error = norm(self.mismatch)
@@ -106,7 +104,6 @@ class EnsembleKalmanFilter:
             # log everything
             if self._rank == 0:
                 utils.plot_curves(self.shape_mean, self._logger.logger_dir / f"shape_mean_smooth_iter={iteration}.pdf")
-                utils.plot_curves(shape_mean_non_smooth, self._logger.logger_dir / f"shape_mean_iter={iteration}.pdf")
                 utils.plot_curves(self.mismatch, self._logger.logger_dir / f"mismatch_iter={iteration}.pdf")
                 consensuses_momentum.append(consensus_momentum)
                 if momentum_truth is not None:
@@ -131,16 +128,22 @@ class EnsembleKalmanFilter:
             errors.append(new_error)
             previous_error = new_error
             iteration += 1
+
+        self.shooter.shoot(self.momentum_mean)
+        utils.plot_curves(
+            self.shooter.shape_function,
+            self._logger.logger_dir / f"{self.shooter.mesh_path.stem}_converged.pdf"
+        )
+        File(self._logger.logger_data_dir / f"{self.shooter.mesh_path.stem}_converged.pvd").write(
+            self.shooter.shape_function,
+        )
+
         if self._rank == 0:
             utils.pdump(errors, self._logger.logger_data_dir / "errors")
             utils.pdump(relative_error_momentum, self._logger.logger_data_dir / "relative_error_momentum")
             utils.pdump(alphas, self._logger.logger_data_dir / "alphas")
             utils.pdump(consensuses_momentum, self._logger.logger_data_dir / "consensuses_momentum")
             utils.pdump(self.momentum_mean.dat.data, self._logger.logger_data_dir / "momentum_mean_converged")
-
-        File(self._logger.logger_data_dir / f"{self.shooter.mesh_path.stem}_converged.pvd").write(
-            self.shooter.shape_function_initial_mesh()
-        )
 
         if iteration > max_iterations:
             self.info(f"Filter stopped - maximum iteration count reached.")
@@ -150,21 +153,22 @@ class EnsembleKalmanFilter:
 
         # shoot
         self.shooter.shoot(self.momentum)
-        # smooth shapes and compute mean
-        self.shape = self.shooter.shape_function_initial_mesh()
-        self._compute_shape_mean()
+        self.shape = self.shooter.smooth_shape_function_initial_mesh()
 
         # compute ensemble means
+        self._compute_shape_mean()
         self._compute_momentum_mean()
-
-        # shoot with momentum mean
-        if self._rank == 0:
-            self.shooter.shoot(self.momentum_mean)
-            return self.shooter.shape_function.copy(deepcopy=True)
 
     def compute_mismatch(self, target: Function):
         self.mismatch.assign(target - self.shape_mean)
         self.mismatch_local.assign(target - self.shape)
+        if False:
+            File(self._logger.logger_dir / "mismatch.pvd").write(self.mismatch)
+            File(self._logger.logger_dir / "mismatch_local.pvd").write(self.mismatch_local)
+            File(self._logger.logger_dir / f"shape_mean.pvd").write(self.shape_mean)
+            File(self._logger.logger_dir / f"shape_DG.pvd").write(self.shooter.shape_function)
+            File(self._logger.logger_dir / f"shape.pvd").write(self.shooter.shape_moved_original_mesh)
+            exit()
 
     def _correct_momentum(self, shape_update):
         self.ensemble.ensemble_comm.Barrier()
@@ -225,7 +229,7 @@ class EnsembleKalmanFilter:
         self.info(f"Ensemble size: {self.ensemble_size}.")
         self.info(f"Inverse problem parameters: {self.inverse_problem_params}.")
         self.info(f"Momentum dimension: {len(self.curve_data_indices)}.")
-        self.info(f"Shape space dimension: {self.shooter.ShapeSpace.dof_count}.")
+        self.info(f"Shape space dimension: {self.shooter.ShapeSpaceMovingMesh.dof_count}.")
         self.shooter.dump_parameters()
         File(self._logger.logger_data_dir / 'target.pvd').write(target)
 

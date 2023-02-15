@@ -79,7 +79,8 @@ def msh_to_pvd(msh_file: Path, overwrite: bool = False) -> None:
     if pvd_file.exists() or overwrite:
         return
     mesh = Mesh(str(msh_file))
-    indicator = utils.shape_function(mesh, mesh_tag=INNER_TAG)
+    function_space = FunctionSpace(mesh, "DG", 0)
+    indicator = utils.shape_function(function_space, mesh_tag=INNER_TAG)
 
     File(pvd_file).write(indicator)
     print(f"Wrote {pvd_file}.")

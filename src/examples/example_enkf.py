@@ -16,7 +16,7 @@ if __name__ == "__main__":
 
     manufactured_solutions = get_solutions(
         shapes=['circle'],
-        momentum_names=["star", "teardrop", "contract"],
+        momentum_names=["squeeze", "star", "teardrop", "contract"],
         resolutions=[1],
     )
 
@@ -53,13 +53,10 @@ if __name__ == "__main__":
         momentum_truth = enkf.shooter.momentum_function().interpolate(manufactured_solution.momentum.signal(x, y))
         initial_momentum = enkf.shooter.momentum_function().assign(random_part)
 
-        # perturb reparam
-        target = Function(enkf.shooter.ShapeSpace, manufactured_solution.target)
-
         # run the EKI
         enkf.run_filter(
             momentum=initial_momentum,
-            target=target,
+            target=manufactured_solution.target,
             max_iterations=max_iterations,
             momentum_truth=momentum_truth,
         )

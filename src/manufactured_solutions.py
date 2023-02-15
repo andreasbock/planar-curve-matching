@@ -91,23 +91,23 @@ def get_solution(
 
 
 def _expand(x, y):
-    return Constant(50.0/72.)
+    return Constant(2*pi) * Constant(50.0/72.)
 
 
 def _contract(x, y):
-    return Constant(-50./72.)
+    return Constant(2*pi) * Constant(-50./72.)
 
 
 def _star(x, y):
-    return Constant(1.3) * cos(2 * pi * x / 5)
+    return Constant(2*pi) * Constant(1.3) * cos(2 * pi * x / 5)
 
 
 def _teardrop(x, y):
-    return conditional(y < 0, -60/40. * sign(y), 60/40. * exp(-x ** 2 / 5))
+    return Constant(2*pi) * conditional(y < 0, -60/40. * sign(y), 60/40. * exp(-x ** 2 / 5))
 
 
 def _squeeze(x, y):
-    return conditional(x < -0.3, 30/72. * exp(-(y ** 2 / 5)), -60/72. * sin(x / 5) * abs(y))
+    return Constant(2*pi) * conditional(x < -0.3, 30/72. * exp(-(y ** 2 / 5)), -60/72. * sin(x / 5) * abs(y))
 
 
 MANUFACTURED_SOLUTIONS_MOMENTUM = [
