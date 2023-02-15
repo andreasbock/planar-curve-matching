@@ -111,9 +111,9 @@ def _squeeze(x, y):
 
 
 MANUFACTURED_SOLUTIONS_MOMENTUM = [
-    #Momentum(name="expand", signal=_expand),
-    #Momentum(name="contract", signal=_contract),
-    #Momentum(name="star", signal=_star),
+    Momentum(name="expand", signal=_expand),
+    Momentum(name="contract", signal=_contract),
+    Momentum(name="star", signal=_star),
     Momentum(name="teardrop", signal=_teardrop),
     Momentum(name="squeeze", signal=_squeeze),
 ]
