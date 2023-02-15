@@ -16,7 +16,7 @@ if __name__ == "__main__":
     logger = utils.Logger(MANUFACTURED_SOLUTIONS_PATH / "manufactured_solutions.log", )
 
     shooting_parameters = ShootingParameters()
-    shooting_parameters.time_steps = 15
+    shooting_parameters.time_steps = 20
     shooting_parameters.alpha = 0.5
     shooting_parameters.momentum_degree = 0
 

@@ -103,17 +103,17 @@ def _star(x, y):
 
 
 def _teardrop(x, y):
-    return Constant(2*pi) * conditional(y < 0, -60/40. * sign(y), 60/40. * exp(-x ** 2 / 5))
+    return Constant(3*pi) * conditional(y < 0, -60/40. * sign(y), 60/40. * exp(-x ** 2 / 5))
 
 
 def _squeeze(x, y):
-    return Constant(2*pi) * conditional(x < -0.3, 30/72. * exp(-(y ** 2 / 5)), -60/72. * sin(x / 5) * abs(y))
+    return Constant(4*pi) * conditional(x < -0.3, 30/72. * exp(-(y ** 2 / 5)), -60/72. * sin(x / 5) * abs(y))
 
 
 MANUFACTURED_SOLUTIONS_MOMENTUM = [
-    Momentum(name="expand", signal=_expand),
-    Momentum(name="contract", signal=_contract),
-    Momentum(name="star", signal=_star),
+    #Momentum(name="expand", signal=_expand),
+    #Momentum(name="contract", signal=_contract),
+    #Momentum(name="star", signal=_star),
     Momentum(name="teardrop", signal=_teardrop),
     Momentum(name="squeeze", signal=_squeeze),
 ]
