@@ -125,7 +125,7 @@ def plot_curves(u, path: Path, colourbar: bool = False):
     tpc = tripcolor(u)
     fig.colorbar(tpc)
     plt.savefig(path)
-    plt.close()
+    fig.close()
 
 
 def shape_function(function_space: firedrake.FunctionSpace, mesh_tag: int):
