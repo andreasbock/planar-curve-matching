@@ -23,6 +23,7 @@ class InverseProblemParameters:
     sample_covariance_regularisation: float = 1e-03  # alpha_0 regularisation parameter
     dynamic_regularisation: bool = False
     max_iter_regularisation: int = 40
+    max_iterations: int = 5
 
 
 class EnsembleKalmanFilter:
@@ -71,7 +72,6 @@ class EnsembleKalmanFilter:
         self,
         momentum: Function,
         target: np.array,
-        max_iterations: int,
         momentum_truth: Function = None,
     ):
         if momentum_truth is not None:
@@ -92,7 +92,7 @@ class EnsembleKalmanFilter:
 
         iteration = 0
         previous_error = float("-inf")
-        while iteration < max_iterations:
+        while iteration < self.inverse_problem_params.max_iterations:
             self.info(f"Iteration {iteration} | Predicting...")
             self.predict()
             self.compute_mismatch(target_smooth)
@@ -145,7 +145,7 @@ class EnsembleKalmanFilter:
             utils.pdump(consensuses_momentum, self._logger.logger_data_dir / "consensuses_momentum")
             utils.pdump(self.momentum_mean.dat.data, self._logger.logger_data_dir / "momentum_mean_converged")
 
-        if iteration > max_iterations:
+        if iteration == self.inverse_problem_params.max_iterations:
             self.info(f"Filter stopped - maximum iteration count reached.")
 
     def predict(self):

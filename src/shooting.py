@@ -1,6 +1,5 @@
 from dataclasses import dataclass, field
 
-import numpy as np
 import scipy.special
 from numpy import nan_to_num
 from typing import Type
@@ -31,8 +30,9 @@ class ShootingParameters:
         }
     )
     momentum_degree: int = 0
-    alpha: float = 0.5
     time_steps: int = 20
+    alpha: float = 0.5
+    kappa: float = 0.01
 
 
 class GeodesicShooter:
@@ -40,7 +40,7 @@ class GeodesicShooter:
         self,
         logger: utils.Logger,
         mesh_path: Path,
-        template: Curve = None,
+        template: Curve,
         shooting_parameters: ShootingParameters = None,
         communicator=COMM_WORLD,
     ):
@@ -50,6 +50,7 @@ class GeodesicShooter:
         self._logger = logger
         self.parameters = shooting_parameters or ShootingParameters()
         self.template = template
+        self.kappa = self.parameters.kappa
 
         # Function spaces
         self.order_XW = 4
@@ -79,7 +80,6 @@ class GeodesicShooter:
         self.ShapeSpaceDG = FunctionSpace(self.mesh, "DG", 0)  # for visualisation
         self.shape_function = utils.shape_function(self.ShapeSpaceDG, INNER_TAG)
 
-        self.kappa = 10  # how much to smoothen
         self.ShapeSpaceMovingMesh = FunctionSpace(self.mesh, "CG", self.order_mismatch)
         self.smooth_shape_function = self.smoothen_shape(self.shape_function)
 
@@ -130,7 +130,6 @@ class GeodesicShooter:
 
     def dump_parameters(self):
         self._logger.info(f"{self.parameters}")
-        self._logger.info(f"kappa = {self.kappa}")
 
     def update_mesh(self, coords):
         self.mesh.coordinates.assign(coords)

@@ -67,6 +67,7 @@ class ManufacturedSolution:
 
 def get_solutions(
     shapes: List[str],
+    kappa: float,
     momentum_names: List[str] = None,
     resolutions: List[float] = None,
 ) -> List[ManufacturedSolution]:
@@ -75,7 +76,7 @@ def get_solutions(
 
     solutions = []
     for momentum, shape, res in itertools.product(momenta, shapes, resolutions):
-        solution = get_solution(momentum, shape, res)
+        solution = get_solution(momentum, shape, res, kappa)
         solutions.append(solution)
     return solutions
 
@@ -84,9 +85,11 @@ def get_solution(
     momentum_name: str,
     shape_name: str,
     resolution: float,
+    kappa: float,
 ) -> ManufacturedSolution:
     name = f"{shape_name}_{momentum_name}"
-    solution_path = MANUFACTURED_SOLUTIONS_PATH / f"h={resolution}" / name
+    smoothness = f"kappa={kappa}"
+    solution_path = MANUFACTURED_SOLUTIONS_PATH / f"h={resolution}" / name / smoothness
     return ManufacturedSolution.load(solution_path)
 
 

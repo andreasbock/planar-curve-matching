@@ -4,10 +4,10 @@ from src.manufactured_solutions import get_solutions
 
 
 if __name__ == "__main__":
-    # parameters
-    max_iterations = 5
     shooting_parameters = ShootingParameters()
-    shooting_parameters.time_steps = 10
+    shooting_parameters.time_steps = 15
+    shooting_parameters.kappa = 1
+
     inverse_problem_parameters = InverseProblemParameters()
     process_per_ensemble_member = 1
     ensemble_object = Ensemble(COMM_WORLD, M=process_per_ensemble_member)
@@ -16,6 +16,7 @@ if __name__ == "__main__":
     EXAMPLES_ENKF_PATH.mkdir(exist_ok=True)
 
     manufactured_solutions = get_solutions(
+        kappa=shooting_parameters.kappa,
         shapes=['circle'],
         momentum_names=["squeeze", "star", "teardrop", "contract"],
         resolutions=[1],
@@ -58,6 +59,5 @@ if __name__ == "__main__":
         enkf.run_filter(
             momentum=initial_momentum,
             target=manufactured_solution.target,
-            max_iterations=max_iterations,
             momentum_truth=momentum_truth,
         )
