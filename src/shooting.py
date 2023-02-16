@@ -49,7 +49,6 @@ class GeodesicShooter:
         self.mesh = Mesh(str(self.mesh_path), comm=self.communicator)
         self._logger = logger
         self.parameters = shooting_parameters or ShootingParameters()
-        self._solver_parameters = self.parameters.velocity_solver_parameters
         self.template = template
 
         # Function spaces
@@ -66,7 +65,6 @@ class GeodesicShooter:
         self.mesh = Mesh(Function(self.Lagrange_XW).interpolate(self.mesh.coordinates), comm=self.communicator)
         self.VDGT = VectorFunctionSpace(self.mesh, "DGT", degree=self.parameters.momentum_degree, dim=2)  # for momentum
         self.XW = VectorFunctionSpace(self.mesh, "WXH3NC", degree=self.order_XW, dim=2)
-        self.VCG1 = VectorFunctionSpace(self.mesh, "CG", degree=1, dim=2)  # for coordinate fields
         self.MomentumSpace = FunctionSpace(self.mesh, "DGT", self.parameters.momentum_degree)  # for momentum signal
         self.velocity_bcs = AxisAlignedDirichletBC(self.XW, Function(self.XW), "on_boundary")
         self.XW_order_orig_coords = self.mesh.coordinates.copy(deepcopy=True)
@@ -84,6 +82,15 @@ class GeodesicShooter:
         self.kappa = 10  # how much to smoothen
         self.ShapeSpaceMovingMesh = FunctionSpace(self.mesh, "CG", self.order_mismatch)
         self.smooth_shape_function = self.smoothen_shape(self.shape_function)
+
+        # Velocity solver
+        self.MomentumTrace = VectorFunctionSpace(self.mesh, "HDiv Trace", degree=self.order_XW - 1, dim=2)  # for coordinate fields
+        v, dv = TrialFunction(self.XW), TestFunction(self.XW)
+        self.p_fun = Function(self.MomentumTrace).assign(1)  # dummy
+        rhs = inner(self.p_fun, dv)('+') * dS(CURVE_TAG)
+        h3_form = trihelmholtz(v, dv, self.parameters.alpha)
+        lvp = LinearVariationalProblem(h3_form, rhs, self.u, bcs=self.velocity_bcs)
+        self.lvs = LinearVariationalSolver(lvp, solver_parameters=self.parameters.velocity_solver_parameters)
 
     def smoothen_shape(self, shape_function: Function):
         v, dv = TrialFunction(self.ShapeSpaceMovingMesh), TestFunction(self.ShapeSpaceMovingMesh)
@@ -110,14 +117,12 @@ class GeodesicShooter:
             self.update_mesh(self.diffeo)
 
     def velocity_solve(self):
-        v, dv = TrialFunction(self.XW), TestFunction(self.XW)
         p = dot(
             transpose(inv(grad(self.diffeo_xw))),
             self.momentum * utils.shape_normal(self.mesh, self.VDGT)
         )
-        rhs = inner(p, dv)('+') * dS(CURVE_TAG)
-        h3_form = trihelmholtz(v, dv, self.parameters.alpha)
-        solve(h3_form == rhs, self.u, bcs=DirichletBC(self.XW, 0, "on_boundary"))
+        utils.trace_project(self.p_fun.function_space(), p, CURVE_TAG, self.p_fun)
+        self.lvs.solve()
 
     def momentum_function(self):
         """ Used in the inverse problem solver. """
