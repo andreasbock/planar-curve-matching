@@ -19,8 +19,8 @@ class InverseProblemParameters:
     tau: float = 1 / 0.9 + 1e-04  # \tau > 1/\rho (!)
     gamma_scale: float = 1  # observation variance
     eta: float = 1e-03  # noise limit, equals ||\Lambda^{0.5}(q1 - G(.))||
-    relative_tolerance: float = 1e-05  # relative error to previous iteration
-    sample_covariance_regularisation: float = 0.001  # alpha_0 regularisation parameter
+    relative_tolerance: float = 1e-03  # relative error to previous iteration
+    sample_covariance_regularisation: float = 1e-03  # alpha_0 regularisation parameter
     dynamic_regularisation: bool = False
     max_iter_regularisation: int = 40
 
@@ -181,7 +181,7 @@ class EnsembleKalmanFilter:
 
     def compute_cw_operator(self):
         rhs = self.inverse_problem_params.rho * self.error_norm(self.mismatch)
-        self.info(f"\t rhs = {rhs}")
+        #self.info(f"\t rhs = {rhs}")
 
         alpha = self.inverse_problem_params.sample_covariance_regularisation
         cw = self.compute_cw()
@@ -193,9 +193,9 @@ class EnsembleKalmanFilter:
 
             # compute the error norm (lhs)
             lhs = alpha * self.error_norm(np.dot(cw_alpha_gamma_inv, self.mismatch.dat.data))
-            self.info(f"\t lhs = {lhs}")
+            #self.info(f"\t lhs = {lhs}")
             if lhs >= rhs or not self.inverse_problem_params.dynamic_regularisation:
-                self.info(f"\t alpha = {alpha}")
+                #self.info(f"\t alpha = {alpha}")
                 return cw_alpha_gamma_inv, alpha
             alpha *= 2
             iteration += 1
