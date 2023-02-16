@@ -2,11 +2,12 @@ from src.enkf import *
 from src.shooting import ShootingParameters
 from src.manufactured_solutions import get_solutions
 
+
 if __name__ == "__main__":
     # parameters
-    max_iterations = 6
+    max_iterations = 5
     shooting_parameters = ShootingParameters()
-    shooting_parameters.time_steps = 20
+    shooting_parameters.time_steps = 10
     inverse_problem_parameters = InverseProblemParameters()
     process_per_ensemble_member = 1
     ensemble_object = Ensemble(COMM_WORLD, M=process_per_ensemble_member)
