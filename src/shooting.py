@@ -1,4 +1,7 @@
 from dataclasses import dataclass, field
+
+import numpy as np
+import scipy.special
 from numpy import nan_to_num
 from typing import Type
 
@@ -113,8 +116,7 @@ class GeodesicShooter:
             self.momentum * utils.shape_normal(self.mesh, self.VDGT)
         )
         rhs = inner(p, dv)('+') * dS(CURVE_TAG)
-        alp0, alp1, alp2, alp3 = 1, self.parameters.alpha, self.parameters.alpha**2, self.parameters.alpha**3
-        h3_form = trihelmholtz(v, dv, alp0, alp1, alp2, alp3)
+        h3_form = trihelmholtz(v, dv, self.parameters.alpha)
         solve(h3_form == rhs, self.u, bcs=DirichletBC(self.XW, 0, "on_boundary"))
 
     def momentum_function(self):
@@ -150,19 +152,23 @@ class AxisAlignedDirichletBC(DirichletBC):
     axis_aligned = True
 
 
-def trihelmholtz(v, dv, alp0=1., alp1=1., alp2=1., alp3=1.):
-    vx, vy = v
-    dvx, dvy = dv
-    return (
-            Constant(alp0)*inner(v, dv)
-            + Constant(alp1)*inner(grad(vx), grad(dvx))
-            + Constant(alp1)*inner(grad(vy), grad(dvy))
-            + Constant(alp2)*inner(delta(vx), delta(dvx))
-            + Constant(alp2)*inner(delta(vy), delta(dvy))
-            + Constant(alp3)*inner(grad(delta(vx)), grad(delta(dvx)))
-            + Constant(alp3)*inner(grad(delta(vy)), grad(delta(dvy)))
-            ) * dx
+def trihelmholtz(u, dv, alpha):
+    m = 3
+    choose_m = lambda j: scipy.special.binom(m, j)
 
-
-def delta(u):
-    return div(grad(u))
+    def Diff(f, j):
+        if j == 0:
+            return f
+        elif j % 2 == 0:
+            return div(Diff(f, j - 1))
+        else:
+            return grad(Diff(f, j - 1))
+    form = inner(u, dv)
+    ux, uy = u
+    vx, vy = dv
+    for ui, vi in zip([ux, uy], [vx, vy]):
+        for j in range(0, m + 1):
+            Djui = Diff(ui, j)
+            Djvi = Diff(vi, j)
+            form += alpha**j * choose_m(j) * inner(Djui, Djvi)
+    return form * dx
