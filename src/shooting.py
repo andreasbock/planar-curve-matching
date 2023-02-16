@@ -171,7 +171,7 @@ def trihelmholtz(u, dv, alpha):
     ux, uy = u
     vx, vy = dv
     for ui, vi in zip([ux, uy], [vx, vy]):
-        for j in range(0, m + 1):
+        for j in range(1, m + 1):
             Djui = Diff(ui, j)
             Djvi = Diff(vi, j)
             form += alpha**j * choose_m(j) * inner(Djui, Djvi)
