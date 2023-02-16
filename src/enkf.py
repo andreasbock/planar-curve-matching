@@ -194,7 +194,6 @@ class EnsembleKalmanFilter:
 
     def compute_cw_operator(self):
         rhs = self.inverse_problem_params.rho * self.error_norm(self.mismatch)
-        self.info(f"\t rhs = {rhs}")
 
         alpha = self.inverse_problem_params.sample_covariance_regularisation
         cw = self.compute_cw()
@@ -206,9 +205,7 @@ class EnsembleKalmanFilter:
 
             # compute the error norm (lhs)
             lhs = alpha * self.error_norm(np.dot(cw_alpha_gamma_inv, self.mismatch.dat.data))
-            self.info(f"\t lhs = {lhs}")
             if lhs >= rhs or not self.inverse_problem_params.dynamic_regularisation:
-                self.info(f"\t alpha = {alpha}")
                 return cw_alpha_gamma_inv, alpha
             alpha *= 2
             iteration += 1
