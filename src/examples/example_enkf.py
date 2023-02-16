@@ -6,7 +6,7 @@ from src.manufactured_solutions import get_solutions
 if __name__ == "__main__":
     shooting_parameters = ShootingParameters()
     shooting_parameters.time_steps = 15
-    shooting_parameters.kappa = 1
+    shooting_parameters.kappa = 0.1
 
     inverse_problem_parameters = InverseProblemParameters()
     process_per_ensemble_member = 1

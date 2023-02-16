@@ -17,7 +17,7 @@ if __name__ == "__main__":
     shooting_parameters.time_steps = 20
     shooting_parameters.alpha = 0.5
     shooting_parameters.momentum_degree = 0
-    shooting_parameters.kappa = 1
+    shooting_parameters.kappa = 0.1
 
     for template in CURVES:
         for resolution in MESH_RESOLUTIONS:
