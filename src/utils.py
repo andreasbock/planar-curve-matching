@@ -125,7 +125,8 @@ def plot_curves(u, path: Path, colourbar: bool = False):
     tpc = tripcolor(u)
     fig.colorbar(tpc)
     plt.savefig(path)
-    fig.close()
+    fig.clf()
+    plt.close(fig)
 
 
 def shape_function(function_space: firedrake.FunctionSpace, mesh_tag: int):
@@ -152,15 +153,11 @@ def shape_normal(mesh: firedrake.Mesh, vector_function_space: firedrake.VectorFu
     return sn
 
 
-def trace_interpolate(function_space: FunctionSpace, f: Function = None, mesh_tag: int = None):
-    if f is None:
-        f = as_vector((1, 1))
+def trace_project(function_space: FunctionSpace, f: Function, mesh_tag: int, solution: Function):
     u, v = TrialFunction(function_space), TestFunction(function_space)
-    w = Function(function_space)
     a = inner(u, v)('+')*dS + inner(u, v)*ds
-    L = inner(f, v)('+')*dS(mesh_tag) + inner(f, v)*ds
-    solve(a == L, w)
-    return w
+    L = inner(f, v)('+')*dS(mesh_tag)
+    solve(a == L, solution)
 
 
 def compute_facet_area(mesh):
