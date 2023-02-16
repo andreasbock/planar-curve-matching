@@ -120,7 +120,7 @@ def pload(name):
     return f
 
 
-def plot_curves(u, path: Path, colourbar: bool = False):
+def plot_curves(u, path: Path):
     fig = plt.figure()
     tpc = tripcolor(u)
     fig.colorbar(tpc)
