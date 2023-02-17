@@ -33,6 +33,7 @@ class ShootingParameters:
     momentum_degree: int = 0
     alpha: float = 1
     time_steps: int = 10
+    kappa: float = 0.01
 
 
 @dataclass
@@ -144,7 +145,7 @@ class GeodesicShooter:
 
     def smoothen_shape(self, shape_function: Function):
         v, dv = TrialFunction(self.ShapeSpaceMovingMesh), TestFunction(self.ShapeSpaceMovingMesh)
-        a = (inner(v, dv) + 0.01 * inner(grad(v), grad(dv))) * dx
+        a = (inner(v, dv) + self.parameters.kappa * inner(grad(v), grad(dv))) * dx
         rhs = inner(shape_function, dv) * dx
         smooth_function = Function(self.ShapeSpaceMovingMesh)
         solve(a == rhs, smooth_function, bcs=DirichletBC(self.ShapeSpaceMovingMesh, 0., "on_boundary"))

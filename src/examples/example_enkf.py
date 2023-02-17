@@ -47,7 +47,7 @@ if __name__ == "__main__":
         # perturb momentum
         pcg = randomfunctiongen.PCG64()
         rg = randomfunctiongen.Generator(pcg)
-        random_part = rg.uniform(enkf.shooter.MomentumSpace, -4, 4)
+        random_part = rg.uniform(enkf.shooter.MomentumSpace, -20, 20)
 
         x, y = SpatialCoordinate(enkf.shooter.mesh)
         momentum_truth = enkf.shooter.momentum_function().interpolate(manufactured_solution.momentum.signal(x, y))

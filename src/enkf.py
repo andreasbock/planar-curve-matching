@@ -68,15 +68,6 @@ class EnsembleKalmanFilter:
         self.xcorr_momentum = np.empty((dim_momentum_data, cov_sz))
         self.xcorr_momentum_all = np.empty(shape=self.xcorr_momentum.shape)
 
-        self.kappa = 0.001
-        u, v = TrialFunction(self.shooter.ShapeSpace), TestFunction(self.shooter.ShapeSpace)
-        a_form = (u * v + self.kappa * inner(grad(u), grad(v))) * dx
-        lvp = LinearVariationalProblem(a=a_form, L=self.mismatch*v*dx, u=self.mismatch, bcs=DirichletBC(self.shooter.ShapeSpace, 0, "on_boundary"))
-        self.lvs = LinearVariationalSolver(lvp)
-
-        lvp_local = LinearVariationalProblem(a=a_form, L=self.mismatch_local*v*dx, u=self.mismatch_local, bcs=DirichletBC(self.shooter.ShapeSpace, 0, "on_boundary"))
-        self.lvs_local = LinearVariationalSolver(lvp_local)
-
     def run_filter(
         self,
         momentum: Function,
@@ -87,9 +78,6 @@ class EnsembleKalmanFilter:
         if momentum_truth is not None:
             norm_momentum_truth = np.sqrt(assemble((momentum_truth('+')) ** 2 * dS(CURVE_TAG)))
 
-        self.mismatch.assign(target)
-        self.lvs.solve()
-        target.assign(self.mismatch)
         self.dump_parameters(target)
         self.momentum.assign(momentum)
         eye = np.eye(product(target.dat.data.shape), dtype='float')
@@ -107,9 +95,9 @@ class EnsembleKalmanFilter:
             self.predict()
             self.compute_mismatch(target)
 
-            File(self._logger.logger_data_dir / f"shape_iter={iter}.pvd").write(self.shooter.shape_function)
-            File(self._logger.logger_data_dir / f"smooth_shape_iter={iter}.pvd").write(self.shooter.smooth_shape_function)
-            File(self._logger.logger_data_dir / f"shape_inital_mesh_iter={iter}.pvd").write(self.shape)
+            File(self._logger.logger_data_dir / f"shape_iter={iteration}.pvd").write(self.shooter.shape_function)
+            File(self._logger.logger_data_dir / f"smooth_shape_iter={iteration}.pvd").write(self.shooter.smooth_shape_function)
+            File(self._logger.logger_data_dir / f"shape_inital_mesh_iter={iteration}.pvd").write(self.shape)
             File(self._logger.logger_data_dir / f"mismatch_iter={iteration}.pvd").write(self.mismatch)
             File(self._logger.logger_data_dir / f"mismatch_local_iter={iteration}.pvd").write(self.mismatch_local)
 
