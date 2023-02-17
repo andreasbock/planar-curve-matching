@@ -158,7 +158,9 @@ class GeodesicShooter:
     def dump_parameters(self):
         self._logger.info(f"{self.parameters}")
 
-    def update_mesh(self, coords):
+    def update_mesh(self, coords=None):
+        if coords is None:
+            coords = self.orig_coords_Lagrange
         self.mesh.coordinates.assign(coords)
         self.mesh.clear_spatial_index()
 
