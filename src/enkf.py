@@ -106,14 +106,17 @@ class EnsembleKalmanFilter:
             self.info(f"Iteration {iteration}: predicting...")
             self.predict()
             self.compute_mismatch(target)
+            File(self._logger.logger_data_dir / f"mismatch_iter={iteration}.pvd").write(self.mismatch)
+            File(self._logger.logger_data_dir / f"mismatch_local_iter={iteration}.pvd").write(self.mismatch_local)
 
             new_error = norm(self.mismatch)
             self.info(f"Iteration {iteration}: Error norm: {new_error}")
             consensus_momentum = self._consensus_momentum(self.momentum_mean)
+            self.info(f"Iteration {iteration} | Consensus: {consensus_momentum}")
             # log everything
             if self._rank == 0:
-                utils.plot_curves(self.shape_mean, self._logger.logger_dir / f"shape_mean_iter={iteration}.eps")
-                utils.plot_curves(self.mismatch, self._logger.logger_dir / f"mismatch_iter={iteration}.eps")
+                utils.plot_curves(self.shape_mean, self._logger.logger_dir / f"shape_mean_iter={iteration}.pdf")
+                utils.plot_curves(self.mismatch, self._logger.logger_dir / f"mismatch_iter={iteration}.pdf")
                 consensuses_momentum.append(consensus_momentum)
                 if momentum_truth is not None:
                     relative_momentum_norm = np.sqrt(assemble((self.momentum('+') - self.momentum_mean('+')) ** 2 * dS(CURVE_TAG)))
