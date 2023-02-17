@@ -43,7 +43,7 @@ class EnsembleKalmanFilter:
         self._rank = self.ensemble.ensemble_comm.Get_rank()
 
         # initialise dynamic member variables
-        self.shape = Function(self.shooter.ShapeSpace)
+        self.shape = None
         self.shape_mean = Function(self.shooter.ShapeSpace)
         self.shape_centered = Function(self.shooter.ShapeSpace)
 
@@ -61,7 +61,7 @@ class EnsembleKalmanFilter:
         self.gamma_inv = None
         self.mean_normaliser = Constant(1 / self.ensemble_size)
 
-        cov_sz = len(self.shape.dat.data)
+        cov_sz = len(self.shape_mean.dat.data)
         self.cov_mismatch = np.empty((cov_sz, cov_sz))
         self.cov_mismatch_all = np.empty(shape=self.cov_mismatch.shape)
 
