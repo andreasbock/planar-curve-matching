@@ -106,6 +106,10 @@ class EnsembleKalmanFilter:
             self.info(f"Iteration {iteration}: predicting...")
             self.predict()
             self.compute_mismatch(target)
+
+            File(self._logger.logger_data_dir / f"shape_iter={iter}.pvd").write(self.shooter.shape_function)
+            File(self._logger.logger_data_dir / f"smooth_shape_iter={iter}.pvd").write(self.shooter.smooth_shape_function)
+            File(self._logger.logger_data_dir / f"shape_inital_mesh_iter={iter}.pvd").write(self.shape)
             File(self._logger.logger_data_dir / f"mismatch_iter={iteration}.pvd").write(self.mismatch)
             File(self._logger.logger_data_dir / f"mismatch_local_iter={iteration}.pvd").write(self.mismatch_local)
 
@@ -161,26 +165,12 @@ class EnsembleKalmanFilter:
         )
         self.info(f"Done.")
 
-        if iteration > max_iterations:
-            self.info(f"Filter stopped - maximum iteration count reached.")
-
     def predict(self):
         self.ensemble.ensemble_comm.Barrier()
 
         # shoot
-        curve_result = self.shooter.shoot(self.momentum)
-        new_mesh = Mesh(Function(self.shooter.VCG1).interpolate(curve_result.diffeo), comm=self.shooter.communicator)
-
-        # evaluate negative Sobolev norm first
-        self.mismatch_local.project(self.shooter.shape_function)
-        self.lvs_local.solve()
-        self.shooter.shape_function.project(self.mismatch_local)
-
-        indicator_moved = Function(
-            functionspaceimpl.WithGeometry.create(self.shooter.shape_function.function_space(), new_mesh),
-            val=self.shooter.shape_function.topological,
-        )
-        self.shape.project(indicator_moved)
+        self.shooter.shoot(self.momentum)
+        self.shape = self.shooter.smooth_shape_function_initial_mesh()
 
         # compute ensemble means
         self._compute_shape_mean()
