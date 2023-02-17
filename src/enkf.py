@@ -93,7 +93,8 @@ class EnsembleKalmanFilter:
         while iteration < max_iterations:
             self.info(f"Iteration {iteration}: predicting...")
             self.predict()
-            self.compute_mismatch(target)
+            self.mismatch.assign(target - self.shape_mean)
+            self.mismatch_local.assign(target - self.shape)
 
             File(self._logger.logger_data_dir / f"shape_iter={iteration}.pvd").write(self.shooter.shape_function)
             File(self._logger.logger_data_dir / f"smooth_shape_iter={iteration}.pvd").write(self.shooter.smooth_shape_function)
@@ -163,10 +164,6 @@ class EnsembleKalmanFilter:
         # compute ensemble means
         self._compute_shape_mean()
         self._compute_momentum_mean()
-
-    def compute_mismatch(self, target: Function):
-        self.mismatch.assign(target - self.shape_mean)
-        self.mismatch_local.assign(target - self.shape)
 
     def _correct_momentum(self, shape_update):
         self.ensemble.ensemble_comm.Barrier()
