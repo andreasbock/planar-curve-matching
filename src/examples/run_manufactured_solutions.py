@@ -19,6 +19,7 @@ if __name__ == "__main__":
     shooting_parameters.time_steps = 15
     shooting_parameters.alpha = 0.5
     shooting_parameters.momentum_degree = 0
+    shooting_parameters.kappa = 0.001
 
     for template in CURVES:
         for resolution in MESH_RESOLUTIONS:
@@ -29,24 +30,15 @@ if __name__ == "__main__":
             mesh_path = generate_mesh(mesh_params, template, MANUFACTURED_SOLUTIONS_PATH)
 
             for momentum in MANUFACTURED_SOLUTIONS_MOMENTUM:
-                template_and_momentum_name = f"{mesh_path.stem}_{momentum.name}"
-                path = mesh_path.parent / template_and_momentum_name
-                path.mkdir(exist_ok=True)
-
-                # logging
+                path = mesh_path.parent / f"{mesh_path.stem}_{momentum.name}" / f"kappa={shooting_parameters.kappa}"
+                path.mkdir(exist_ok=True, parents=True)
                 logger.info(f"Logging to `{path}`.")
+
+                # shoot
                 shooter = GeodesicShooter(logger, mesh_path, template, shooting_parameters)
-
-                curve_result = shooter.shoot(momentum)
-                new_mesh = Mesh(Function(shooter.VCG1).interpolate(curve_result.diffeo))
-                indicator_moved = Function(
-                    functionspaceimpl.WithGeometry.create(shooter.shape_function.function_space(), new_mesh),
-                    val=shooter.shape_function.topological
-                )
-
-                indicator_moved_original_mesh = Function(shooter.ShapeSpace).project(indicator_moved)
-                utils.my_heaviside(indicator_moved_original_mesh)
-                utils.plot_curves(indicator_moved_original_mesh, path / f"{mesh_path.stem}_{momentum.name}.pdf")
+                shooter.shoot(momentum)
+                indicator_moved_original_mesh = shooter.smooth_shape_function_initial_mesh()
+                utils.plot_curves(shooter.shape_function, path / f"{mesh_path.stem}_{momentum.name}.pdf")
 
                 # dump the solution
                 mf = ManufacturedSolution(
