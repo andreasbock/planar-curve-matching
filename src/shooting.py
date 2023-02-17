@@ -106,7 +106,7 @@ class GeodesicShooter:
     def shoot(self, momentum: Momentum):
         self.update_mesh(self.orig_coords_Lagrange)
         self.diffeo_xw.assign(self.orig_coords)
-        Dt = Constant(1 / self.parameters.time_steps)
+        dt = Constant(1 / self.parameters.time_steps)
 
         if not isinstance(momentum, Function):
             x, y = SpatialCoordinate(self.mesh)
@@ -115,7 +115,7 @@ class GeodesicShooter:
 
         for t in range(self.parameters.time_steps):
             self.velocity_solve()
-            self.diffeo_xw.assign(self.diffeo_xw + self.u * Dt)
+            self.diffeo_xw.assign(self.diffeo_xw + self.u * dt)
             self.diffeo.project(self.diffeo_xw)
             self.update_mesh(self.diffeo)
 
