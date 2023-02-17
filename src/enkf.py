@@ -137,22 +137,26 @@ class EnsembleKalmanFilter:
             errors.append(new_error)
             previous_error = new_error
             iteration += 1
+        if iteration == max_iterations:
+            self.info(f"Filter stopped - maximum iteration count reached.")
+
+        self.info(f"Shooting with momentum mean...")
+        self.shooter.shoot(self.momentum_mean)
         if self._rank == 0:
+            self.info(f"Dumping forward operator of momentum mean...")
             utils.pdump(errors, self._logger.logger_data_dir / "errors")
             utils.pdump(relative_error_momentum, self._logger.logger_data_dir / "relative_error_momentum")
             utils.pdump(alphas, self._logger.logger_data_dir / "alphas")
             utils.pdump(consensuses_momentum, self._logger.logger_data_dir / "consensuses_momentum")
             utils.pdump(self.momentum_mean.dat.data, self._logger.logger_data_dir / "momentum_mean_converged")
-
-        final_curve_result = self.shooter.shoot(self.momentum_mean)
-        new_mesh = Mesh(Function(self.shooter.VCG1).interpolate(final_curve_result.diffeo))
-        indicator_moved = Function(
-            functionspaceimpl.WithGeometry.create(self.shooter.shape_function.function_space(), new_mesh),
-            val=self.shooter.shape_function.topological
-        )
+            utils.plot_curves(
+                self.shooter.shape_function,
+                self._logger.logger_dir / f"{self.shooter.mesh_path.stem}_converged.pdf"
+            )
         File(self._logger.logger_data_dir / f"{self.shooter.mesh_path.stem}_converged.pvd").write(
-            indicator_moved
+            self.shooter.shape_function,
         )
+        self.info(f"Done.")
 
         if iteration > max_iterations:
             self.info(f"Filter stopped - maximum iteration count reached.")
