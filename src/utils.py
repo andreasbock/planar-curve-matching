@@ -127,18 +127,10 @@ def plot_curves(u, path: Path, colourbar: bool = False):
     plt.close()
 
 
-def shape_function(mesh: firedrake.Mesh, mesh_tag: int, dim=2):
-    if dim == 2:
-        meas = dx
-        function_space = FunctionSpace(mesh, "DG", 0)
-        v, dv = TrialFunction(function_space), TestFunction(function_space)
-    else:
-        meas = dS
-        function_space = FunctionSpace(mesh, "CG", 1)
-        v, dv = TrialFunction(function_space), TestFunction(function_space)
-
+def shape_function(function_space: firedrake.FunctionSpace, mesh_tag: int):
+    v, dv = TrialFunction(function_space), TestFunction(function_space)
     shape = Function(function_space, name="shape_function")
-    solve(v*dv*dx == dv('+')*meas(mesh_tag), shape)
+    solve(v*dv*dx == dv('+')*dx(mesh_tag), shape)
     return shape
 
 
