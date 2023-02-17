@@ -4,7 +4,7 @@ from src.manufactured_solutions import get_solutions
 
 if __name__ == "__main__":
     # parameters
-    max_iterations = 6
+    max_iterations = 5
     shooting_parameters = ShootingParameters()
     inverse_problem_parameters = InverseProblemParameters()
     process_per_ensemble_member = 1
@@ -15,8 +15,9 @@ if __name__ == "__main__":
 
     manufactured_solutions = get_solutions(
         shapes=['circle'],
-        momentum_names=["star", "teardrop", "contract"],
+        momentum_names=["squeeze", "star", "teardrop", "contract"],
         resolutions=[1],
+        kappa=0.001,
     )
 
     # run EKI over all manufactured solutions
