@@ -51,6 +51,7 @@ class GeodesicShooter:
         template: Curve = None,
         shooting_parameters: ShootingParameters = None,
         communicator=COMM_WORLD,
+        trihelmholtz_velocity: bool = True,
     ):
         self.mesh_path = mesh_path
         self.communicator = communicator
@@ -59,6 +60,7 @@ class GeodesicShooter:
         self.parameters = shooting_parameters or ShootingParameters()
         self._solver_parameters = self.parameters.velocity_solver_parameters
         self.template = template
+        self.trihelmholtz_velocity = trihelmholtz_velocity
 
         # Function spaces
         self.order_XW = 4
@@ -99,9 +101,12 @@ class GeodesicShooter:
         v, dv = TrialFunction(self.XW), TestFunction(self.XW)
         self.p_fun = Function(self.MomentumTrace).assign(1)  # dummy
         rhs = inner(self.p_fun, dv)('+') * dS(CURVE_TAG)
-        h3_form = trihelmholtz(v, dv, self.parameters.alpha)
-        lvp = LinearVariationalProblem(h3_form, rhs, self.u, bcs=self.velocity_bcs)
-        self.lvs = LinearVariationalSolver(lvp, solver_parameters=self.parameters.velocity_solver_parameters)
+        if self.trihelmholtz_velocity:
+            h3_form = trihelmholtz(v, dv, self.parameters.alpha)
+            lvp = LinearVariationalProblem(h3_form, rhs, self.u, bcs=self.velocity_bcs)
+            self.lvs = LinearVariationalSolver(lvp, solver_parameters=self.parameters.velocity_solver_parameters)
+        else:
+            raise NotImplementedError
 
     def shoot(self, momentum: Momentum):
         self.update_mesh(self.orig_coords_Lagrange)
