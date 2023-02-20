@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from pathlib import Path
 import subprocess
 
+import firedrake
 from firedrake import *
 
 from src.curves import Curve
@@ -76,22 +77,23 @@ def geo_to_msh(geometry_file: Path, overwrite: bool = False) -> Path:
 
 def msh_to_pvd(msh_file: Path, overwrite: bool = False) -> None:
     mesh = Mesh(str(msh_file))
+    plot_mesh(mesh, msh_file.parent / f"{msh_file.stem}")
 
+
+def plot_mesh(mesh: firedrake.Mesh, path: Path):
+    pvd_file = path.parent / f"{path.stem}_DG.pvd"
     function_space = FunctionSpace(mesh, "DG", 0)
-    pvd_file = msh_file.parent / f"{msh_file.stem}_DG.pvd"
-    if not pvd_file.exists() or overwrite:
-        indicator = utils.shape_function(function_space, mesh_tag=INNER_TAG)
-        File(pvd_file).write(indicator)
-        print(f"Wrote {pvd_file}.")
+    indicator = utils.shape_function(function_space, mesh_tag=INNER_TAG)
+    File(pvd_file).write(indicator)
+    print(f"Wrote {pvd_file}.")
 
+    pvd_file = path.parent / f"{path.stem}_CG.pvd"
     function_space = FunctionSpace(mesh, "CG", 1)
-    pvd_file = msh_file.parent / f"{msh_file.stem}_CG.pvd"
-    if not pvd_file.exists() or overwrite:
-        v, dv = TrialFunction(function_space), TestFunction(function_space)
-        indicator = Function(function_space, name="shape_function")
-        solve(v * dv * dx == dv('+') * dS(CURVE_TAG), indicator)
-        File(pvd_file).write(indicator)
-        print(f"Wrote {pvd_file}.")
+    v, dv = TrialFunction(function_space), TestFunction(function_space)
+    indicator = Function(function_space, name="shape_function")
+    solve(v * dv * dx == dv('+') * dS(CURVE_TAG), indicator)
+    File(pvd_file).write(indicator)
+    print(f"Wrote {pvd_file}.")
 
 
 def generate_mesh(
