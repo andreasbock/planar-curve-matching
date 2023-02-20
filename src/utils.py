@@ -120,10 +120,13 @@ def pload(name):
     return f
 
 
-def plot_curves(u, path: Path, colourbar: bool = False):
+def plot_curves(u, path: Path):
     plt.figure()
-    tricontourf(u)
-    plt.savefig(path)
+    axes = plt.gca()
+    tricontourf(u, axes=axes)
+    plt.axis('off')
+    axes.set_aspect('equal', adjustable='box')
+    plt.savefig(path, bbox_inches='tight')
     plt.close()
 
 
