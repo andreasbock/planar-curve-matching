@@ -1,8 +1,8 @@
+import time
 from dataclasses import dataclass
 import numpy as np  # for pickle, don't remove!
 
 from firedrake import *
-from firedrake import functionspaceimpl
 from pyop2.mpi import MPI
 
 import src.utils as utils
@@ -90,6 +90,7 @@ class EnsembleKalmanFilter:
 
         iteration = 0
         previous_error = float("-inf")
+        time_start = time.time()
         while iteration < max_iterations:
             self.info(f"Iteration {iteration}: predicting...")
             self.predict()
@@ -133,12 +134,18 @@ class EnsembleKalmanFilter:
             errors.append(new_error)
             previous_error = new_error
             iteration += 1
+        time_end = time.time()
+        elapsed = time.gmtime(time_end - time_start)
+        elapsed_str = time.strftime("%Hh%Mm%Ss", elapsed)
+
         if iteration == max_iterations:
             self.info(f"Filter stopped - maximum iteration count reached.")
 
         self.info(f"Shooting with momentum mean...")
         self.shooter.shoot(self.momentum_mean)
         if self._rank == 0:
+            self.info("Time elapsed:")
+            self.info(f"\t {elapsed_str}")
             self.info(f"Dumping forward operator of momentum mean...")
             utils.pdump(errors, self._logger.logger_data_dir / "errors")
             utils.pdump(relative_error_momentum, self._logger.logger_data_dir / "relative_error_momentum")
