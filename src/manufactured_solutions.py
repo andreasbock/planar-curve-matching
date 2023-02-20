@@ -113,6 +113,10 @@ def _squeeze(x, y):
     return Constant(2*pi) * conditional(x < -0.3, 30/72. * exp(-(y ** 2 / 5)), -60/72. * sin(x / 5) * abs(y))
 
 
+def _new(x, y):
+    return _teardrop(x, y) * _star(x, y) * conditional(x < -0.3, exp(-(y ** 2 / 3)), -sin(x / 5)) * Constant(2/3) * (- sign(y))
+
+
 MANUFACTURED_SOLUTIONS_MOMENTUM = [
     Momentum(name="expand", signal=_expand),
     Momentum(name="contract", signal=_contract),
