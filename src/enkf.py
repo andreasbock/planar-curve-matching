@@ -163,6 +163,7 @@ class EnsembleKalmanFilter:
 
         # compute ensemble means
         self._compute_shape_mean()
+        self.shooter.update_mesh()
         self._compute_momentum_mean()
 
     def _correct_momentum(self, shape_update):
