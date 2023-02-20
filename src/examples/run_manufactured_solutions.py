@@ -6,7 +6,7 @@ from src.manufactured_solutions import (
     MANUFACTURED_SOLUTIONS_PATH, MANUFACTURED_SOLUTIONS_MOMENTUM, MESH_RESOLUTIONS,
     ManufacturedSolution,
 )
-from src.mesh_generation import MeshGenerationParameters, generate_mesh
+from src.mesh_generation import MeshGenerationParameters, generate_mesh, plot_mesh
 from src.shooting import ShootingParameters, GeodesicShooter
 
 
@@ -46,7 +46,7 @@ if __name__ == "__main__":
                 )
                 mf.dump(path)
                 logger.info(f"Wrote solution to {path / mf.name()}.")
-                File(path / f"{mesh_path.stem}_{momentum.name}.pvd").write(shooter.shape_function)
+                plot_mesh(shooter.mesh, path / f"{mesh_path.stem}_{momentum.name}")
                 File(path / f"{mesh_path.stem}_{momentum.name}_smooth_original_mesh.pvd").write(
                     indicator_moved_original_mesh
                 )
