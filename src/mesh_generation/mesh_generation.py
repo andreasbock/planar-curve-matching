@@ -75,15 +75,23 @@ def geo_to_msh(geometry_file: Path, overwrite: bool = False) -> Path:
 
 
 def msh_to_pvd(msh_file: Path, overwrite: bool = False) -> None:
-    pvd_file = msh_file.parent / f"{msh_file.stem}.pvd"
-    if pvd_file.exists() or overwrite:
-        return
     mesh = Mesh(str(msh_file))
-    function_space = FunctionSpace(mesh, "DG", 0)
-    indicator = utils.shape_function(function_space, mesh_tag=INNER_TAG)
 
-    File(pvd_file).write(indicator)
-    print(f"Wrote {pvd_file}.")
+    function_space = FunctionSpace(mesh, "DG", 0)
+    pvd_file = msh_file.parent / f"{msh_file.stem}_DG.pvd"
+    if not pvd_file.exists() or overwrite:
+        indicator = utils.shape_function(function_space, mesh_tag=INNER_TAG)
+        File(pvd_file).write(indicator)
+        print(f"Wrote {pvd_file}.")
+
+    function_space = FunctionSpace(mesh, "CG", 1)
+    pvd_file = msh_file.parent / f"{msh_file.stem}_CG.pvd"
+    if not pvd_file.exists() or overwrite:
+        v, dv = TrialFunction(function_space), TestFunction(function_space)
+        indicator = Function(function_space, name="shape_function")
+        solve(v * dv * dx == dv('+') * dS(CURVE_TAG), indicator)
+        File(pvd_file).write(indicator)
+        print(f"Wrote {pvd_file}.")
 
 
 def generate_mesh(
