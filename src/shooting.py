@@ -33,7 +33,7 @@ class ShootingParameters:
     momentum_degree: int = 0
     alpha: float = 1
     time_steps: int = 10
-    kappa: float = 0.01
+    kappa: float = 10
 
 
 @dataclass
@@ -122,7 +122,7 @@ class GeodesicShooter:
     def velocity_solve(self):
         p = dot(
             transpose(inv(grad(self.diffeo_xw))),
-            self.h_inv * self.momentum * self.shape_normal
+            self.momentum * self.shape_normal
         )
         utils.trace_project(self.p_fun.function_space(), p, CURVE_TAG, self.p_fun)
         self.lvs.solve()

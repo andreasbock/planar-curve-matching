@@ -17,7 +17,7 @@ if __name__ == "__main__":
         shapes=['circle'],
         momentum_names=["squeeze", "star", "teardrop", "contract"],
         resolutions=[1],
-        kappa=0.01,
+        kappa=10,
     )
 
     # run EKI over all manufactured solutions
