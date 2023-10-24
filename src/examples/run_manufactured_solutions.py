@@ -33,7 +33,7 @@ if __name__ == "__main__":
 
                 # shoot
                 shooter = GeodesicShooter(logger, mesh_path, template, shooting_parameters)
-                shooter.shoot(momentum)
+                shooter.shoot(momentum, path)
                 indicator_moved_original_mesh = shooter.smooth_shape_function_initial_mesh()
                 utils.plot_curves(shooter.shape_function, path / f"{mesh_path.stem}_{momentum.name}.pdf")
 

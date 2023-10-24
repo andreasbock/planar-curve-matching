@@ -108,7 +108,12 @@ class GeodesicShooter:
         else:
             raise NotImplementedError
 
-    def shoot(self, momentum: Momentum):
+    def shoot(self, momentum: Momentum, path: Path = None):
+        if path is not None:
+            prefix = f"{self.mesh_path.stem}_t=0"
+            utils.plot_curves(self.shape_function, path / f"{prefix}.pdf")
+            File(path / f"{prefix}.pvd").write(self.shape_function)
+
         self.update_mesh(self.orig_coords_Lagrange)
         self.diffeo_xw.assign(self.orig_coords)
         dt = Constant(1 / self.parameters.time_steps)
@@ -123,6 +128,10 @@ class GeodesicShooter:
             self.diffeo_xw.assign(self.diffeo_xw + self.u * dt)
             self.diffeo.project(self.diffeo_xw)
             self.update_mesh(self.diffeo)
+            if path is not None:
+                prefix = f"{self.mesh_path.stem}_t={t+1}"
+                utils.plot_curves(self.shape_function, path / f"{prefix}.pdf")
+                File(path / f"{prefix}.pvd").write(self.shape_function)
 
     def velocity_solve(self):
         p = dot(
